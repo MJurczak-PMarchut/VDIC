@@ -24,15 +24,27 @@ module top;
 // Type definitions
 //------------------------------------------------------------------------------
 
+
+typedef enum bit[7:0] {
+    S_NO_ERROR  = 8'b00000000,
+    S_MISSING_DATA = 8'b00000001,
+    S_DATA_STACK_OVERFLOW = 8'b00000010,
+    S_OUTPUT_FIFO_OVERFLOW = 8'b00000100,
+    S_DATA_PARITY_ERROR = 8'b00100000,
+    S_COMMAND_PARITY_ERROR = 8'b01000000,
+    S_INVALID_COMMAND = 8'b10000000
+} status_t;
+
+
 typedef enum bit[7:0] {
     CMD_NOP  = 8'b00000000,
     CMD_AND = 8'b00000001,
     CMD_OR = 8'b00000010,
     CMD_XOR = 8'b00000011,
     CMD_ADD = 8'b00010000,
-    CMD_SUB = 8'b00100000
+    CMD_SUB = 8'b00100000,
+    INV_CMD = 8'b10110011
 } operation_t;
-
 
 typedef enum bit {
     TEST_PASSED,
@@ -52,16 +64,18 @@ typedef enum {
 // Local variables
 //------------------------------------------------------------------------------
 
-bit           [7:0]  data_counter;
+bit           [7:0]  data_counter, packet_counter;
 bit           [7:0]  STATUS;
 bit           [9:0]  A_ext;
 bit           [9:0]  B_ext;
 bit                  clk;
 bit                  reset_n;
 bit 				 enable_n;
-bit          [15:0] result;
-bit          [0:29] data_in_ext;
-bit          [0:29] data_out_ext;
+bit          [15:0]  result;
+bit          [0:29]  data_in_ext;
+bit          [0:29]  data_out_ext;
+bit          [0:9] 	 data_in_ext_2 [8];
+byte 				 repeat_no;
 
 operation_t          op_set;
 bit [9:0] op_set_ext;
@@ -115,7 +129,7 @@ function operation_t get_op();
         3'b010 : return CMD_AND;
         3'b011 : return CMD_AND;
         3'b100 : return CMD_ADD;
-        3'b101 : return CMD_AND;
+        3'b101 : return INV_CMD;
 //        3'b011 : return CMD_XOR;
 //        3'b100 : return CMD_SUB;
 //        3'b101 : return CMD_NOP;
@@ -140,22 +154,28 @@ function byte get_data();
         return 8'($random);
 endfunction : get_data
 
+function byte get_op_no();
+        return 1'($random) + 2'b10; //At least two operands
+endfunction : get_op_no
+
 //------------------------
 // Tester main
 
-task send_to_DUT(input integer bits);
+task send_to_DUT(input integer packets);
 	begin
-		data_counter <= 0;
-	    repeat(bits)
+		data_counter = 0;
+		packet_counter = 0;
+	    repeat(packets*10)
 		    begin
 	            @(negedge(clk))
 	            	begin
-		            	enable_n <= 1'b0;
-			            din <= data_in_ext[data_counter];
-			            data_counter <= data_counter+1;
+		            	enable_n = 1'b0;
+			            din = data_in_ext_2[packet_counter][data_counter%10];
+			            data_counter = data_counter+1;
+		            	packet_counter = data_counter/10;
 	            	end
 	    	end
-	    @(posedge clk)
+	    @(negedge clk)
     		enable_n <= 1'b1;
 	end
 endtask
@@ -166,10 +186,22 @@ task receive_from_DUT(input integer bits);
 	    repeat(bits) begin
             @(posedge(clk))
             	begin
-		            data_out_ext[data_counter] <= dout;
-		            data_counter <= data_counter+1;
+		            data_out_ext[data_counter] = dout;
+		            data_counter = data_counter+1;
             	end
 	    end
+	end
+endtask
+
+task fill_data_in_regs(input byte repeat_number);
+	begin
+		data_counter = 0;
+	    repeat(repeat_number) begin
+		    A_ext = {1'b0,get_data(),1'b0};
+		    A_ext[0] = ~^A_ext;
+            data_in_ext_2[data_counter] = A_ext;
+            data_counter = data_counter+1;
+    	end
 	end
 endtask
 
@@ -180,18 +212,16 @@ initial begin : tester
 	    op_set = get_op();
         op_set_ext = {1'b1, op_set, 1'b0};
 	    op_set_ext[0] = ~^op_set_ext;
-	    A_ext = {1'b0,get_data(),1'b0};
-	    A_ext[0] = ~^A_ext;
-	    B_ext = {1'b0,get_data(),1'b0};
-	    B_ext[0] = ~^B_ext;
-	    data_in_ext = {A_ext, B_ext, op_set_ext};
+	    repeat_no = get_op_no();
+	    fill_data_in_regs(repeat_no);
+	    data_in_ext_2[repeat_no] = op_set_ext;
         case (op_set) // handle the start signal
             CMD_NOP: begin : case_no_op_blk
                 @(negedge clk);
                 enable_n = 1'b0;
             end
             default: begin : case_default_blk
-				send_to_DUT(30);
+				send_to_DUT(repeat_no+1);
                 wait(dout_valid);
 				receive_from_DUT(30);
             	STATUS = data_out_ext[1:8];
@@ -200,18 +230,31 @@ initial begin : tester
                 //------------------------------------------------------------------------------
                 // temporary data check - scoreboard will do the job later
                 begin
-                    automatic bit [15:0] expected = get_expected(A_ext[8:1], B_ext[8:1], op_set);
-                    assert(result === expected) begin
-                        `ifdef DEBUG
-                        $display("Test passed for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set);
-                        `endif
-                    end
-                    else begin
-                        $display("Test FAILED for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set.name());
-                        $display("Expected: %d  received: %d", expected, result);
-	                    $display("STATUS: %d ", STATUS);
-                        test_result = TEST_FAILED;
-                    end;
+                    automatic bit [15:0] expected = get_expected_2(data_in_ext_2, op_set, repeat_no);
+	                if(op_set != INV_CMD)
+	                    assert((result == expected) && (STATUS == 0)) begin
+	                        `ifdef DEBUG
+	                        $display("Test passed for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set);
+	                        `endif
+	                    end
+	                    else begin
+	                        $display("Test FAILED for op_set=%s", op_set.name());
+	                        $display("Expected: %d  received: %d", expected, result);
+		                    $display("STATUS: %d ", STATUS);
+	                        test_result = TEST_FAILED;
+	                    end
+	                else
+		                assert(STATUS == S_INVALID_COMMAND) begin
+	                        `ifdef DEBUG
+	                        $display("Test passed for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set);
+	                        `endif
+	                    end
+	                    else begin
+	                        $display("Test FAILED for op_set=%s", op_set.name());
+	                        $display("Expected: %d  received: %d", expected, result);
+		                    $display("STATUS: %d ", STATUS);
+	                        test_result = TEST_FAILED;
+	                    end;
                 end
 
             end : case_default_blk
@@ -254,6 +297,7 @@ function logic [15:0] get_expected(
         CMD_ADD : ret    = A + B;
         CMD_SUB : ret    = A - B;
         CMD_XOR : ret    = A ^ B;
+	    INV_CMD : ret    = 0;
         default: begin
             $display("%0t INTERNAL ERROR. get_expected: unexpected case argument: %s", $time, op_set);
             test_result = TEST_FAILED;
@@ -262,6 +306,36 @@ function logic [15:0] get_expected(
     endcase
     return(ret);
 endfunction : get_expected
+
+function logic [15:0] get_expected_2(
+		bit [0:9] data [8],
+        operation_t op_set,
+        byte repetitions
+    );
+    bit [15:0] ret;
+	bit [7:0] A, B;
+	byte iter;
+	iter = 1;
+	ret = data[0][1:8];
+    repeat(repetitions-1)
+	    begin
+	    	B = data[iter][1:8];
+		    case(op_set)
+		        CMD_AND : ret    = ret & B;
+		        CMD_ADD : ret    = ret + B;
+		        CMD_SUB : ret    = ret - B;
+		        CMD_XOR : ret    = ret ^ B;
+			    INV_CMD : ret    = 0;
+		        default: begin
+		            $display("%0t INTERNAL ERROR. get_expected: unexpected case argument: %s", $time, op_set);
+		            test_result = TEST_FAILED;
+		            return -1;
+		        end
+		    endcase
+		    iter = iter + 1;
+	    end
+    return(ret);
+endfunction : get_expected_2
 
 //------------------------------------------------------------------------------
 // Temporary. The scoreboard will be later used for checking the data
