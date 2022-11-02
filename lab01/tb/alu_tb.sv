@@ -53,24 +53,18 @@ typedef enum {
 //------------------------------------------------------------------------------
 
 bit           [7:0]  data_counter;
-bit           [7:0]  A;
-bit           [7:0]  B;
 bit           [7:0]  STATUS;
 bit           [9:0]  A_ext;
 bit           [9:0]  B_ext;
 bit                  clk;
 bit                  reset_n;
-wire          [2:0]  op;
-bit                  start;
 bit 				 enable_n;
-wire                 done;
 bit          [15:0] result;
 bit          [0:29] data_in_ext;
 bit          [0:29] data_out_ext;
 
 operation_t          op_set;
 bit [9:0] op_set_ext;
-assign op = op_set;
 
 test_result_t        test_result = TEST_PASSED;
 
@@ -115,14 +109,19 @@ function operation_t get_op();
     bit [2:0] op_choice;
     op_choice = 3'($random);
     case (op_choice)
-        3'b000 : return CMD_NOP;
+//        3'b000 : return CMD_NOP;
+		3'b000 : return CMD_ADD;
         3'b001 : return CMD_ADD;
         3'b010 : return CMD_AND;
-        3'b011 : return CMD_XOR;
-        3'b100 : return CMD_SUB;
-        3'b101 : return CMD_NOP;
-        3'b110 : return CMD_OR;
-        3'b111 : return CMD_OR;
+        3'b011 : return CMD_AND;
+        3'b100 : return CMD_ADD;
+        3'b101 : return CMD_AND;
+//        3'b011 : return CMD_XOR;
+//        3'b100 : return CMD_SUB;
+//        3'b101 : return CMD_NOP;
+//        3'b110 : return CMD_OR;
+        3'b110 : return CMD_AND;
+        3'b111 : return CMD_ADD;
     endcase // case (op_choice)
 endfunction : get_op
 
@@ -144,65 +143,71 @@ endfunction : get_data
 //------------------------
 // Tester main
 
+task send_to_DUT(input integer bits);
+	begin
+		data_counter <= 0;
+	    repeat(bits)
+		    begin
+	            @(negedge(clk))
+	            	begin
+		            	enable_n <= 1'b0;
+			            din <= data_in_ext[data_counter];
+			            data_counter <= data_counter+1;
+	            	end
+	    	end
+	    @(posedge clk)
+    		enable_n <= 1'b1;
+	end
+endtask
+
+task receive_from_DUT(input integer bits);
+	begin
+		data_counter <= 0;
+	    repeat(bits) begin
+            @(posedge(clk))
+            	begin
+		            data_out_ext[data_counter] <= dout;
+		            data_counter <= data_counter+1;
+            	end
+	    end
+	end
+endtask
+
 initial begin : tester
     reset_alu();
-    repeat (2) begin : tester_main_blk
+    repeat (100) begin : tester_main_blk
         @(negedge clk);
-	    op_set = CMD_ADD;
+	    op_set = get_op();
         op_set_ext = {1'b1, op_set, 1'b0};
 	    op_set_ext[0] = ~^op_set_ext;
-        A      = 00000010;
-        B      = 00000001;
-	    A_ext = {1'b0,A,1'b0};
+	    A_ext = {1'b0,get_data(),1'b0};
 	    A_ext[0] = ~^A_ext;
-	    B_ext = {1'b0,B,1'b0};
+	    B_ext = {1'b0,get_data(),1'b0};
 	    B_ext[0] = ~^B_ext;
-        start  = 1'b1;
-	    data_counter = 0;
 	    data_in_ext = {A_ext, B_ext, op_set_ext};
         case (op_set) // handle the start signal
             CMD_NOP: begin : case_no_op_blk
                 @(negedge clk);
-                enable_n                             = 1'b0;
+                enable_n = 1'b0;
             end
             default: begin : case_default_blk
-	            //TODO send data
-            	enable_n                             = 1'b0;
-	            repeat(30) begin
-		            @(posedge(clk))
-		            	begin
-				            din = data_in_ext[data_counter];
-				            data_counter = data_counter+1;
-		            	end
-		            end
+				send_to_DUT(30);
                 wait(dout_valid);
-	            begin
-		            data_counter =0;
-	            end
-	            repeat(30) begin
-		            @(posedge(clk))
-		            	begin
-				            data_out_ext[data_counter] = dout;
-				            data_counter = data_counter+1;
-		            	end
-	            end
-	            begin
-                	enable_n                             = 1'b1;
-	            	STATUS = data_out_ext[1:8];
-	            	result = {data_out_ext[11:18],data_out_ext[21:28]};
-	            end
+				receive_from_DUT(30);
+            	STATUS = data_out_ext[1:8];
+            	result = {data_out_ext[11:18],data_out_ext[21:28]};
 	            
                 //------------------------------------------------------------------------------
                 // temporary data check - scoreboard will do the job later
                 begin
-                    automatic bit [15:0] expected = get_expected(A, B, CMD_ADD);
+                    automatic bit [15:0] expected = get_expected(A_ext[8:1], B_ext[8:1], op_set);
                     assert(result === expected) begin
                         `ifdef DEBUG
-                        $display("Test passed for A=%0d B=%0d op_set=%s", A, B, op_set);
+                        $display("Test passed for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set);
                         `endif
                     end
                     else begin
-                        $display("Test FAILED for A=%0d B=%0d op_set=%s", A, B, op_set.name());
+                        $display("Test FAILED for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set.name());
                         $display("Expected: %d  received: %d", expected, result);
 	                    $display("STATUS: %d ", STATUS);
                         test_result = TEST_FAILED;
@@ -226,7 +231,6 @@ task reset_alu();
     `ifdef DEBUG
     $display("%0t DEBUG: reset_alu", $time);
     `endif
-    start   = 1'b0;
     reset_n = 1'b0;
     @(negedge clk);
     reset_n = 1'b1;
