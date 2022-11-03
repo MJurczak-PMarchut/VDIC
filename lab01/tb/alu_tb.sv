@@ -154,7 +154,9 @@ function byte get_data();
 endfunction : get_data
 
 function byte get_op_no();
-        return 1'($random) + 2'b10; //At least two operands
+	bit [7:0] ret;
+	ret = 3'($random) + 2'b10; //At least two operands
+    return (ret >= 7)?7:ret;
 endfunction : get_op_no
 
 //------------------------
@@ -205,64 +207,70 @@ task fill_data_in_regs(input byte repeat_number);
 endtask
 
 initial begin : tester
-    reset_alu();
-    repeat (100) begin : tester_main_blk
-        @(negedge clk);
-	    op_set = get_op();
-        op_set_ext = {1'b1, op_set, 1'b0};
-	    op_set_ext[0] = ~^op_set_ext;
-	    repeat_no = get_op_no();
-	    fill_data_in_regs(repeat_no);
-	    data_in_ext_2[repeat_no] = op_set_ext;
-        case (op_set) // handle the start signal
-            CMD_NOP: begin : case_no_op_blk
-                @(negedge clk);
-                enable_n = 1'b0;
-            end
-            default: begin : case_default_blk
-				send_to_DUT(repeat_no+1);
-                wait(dout_valid);
-				receive_from_DUT(30);
-            	STATUS = data_out_ext[1:8];
-            	result = {data_out_ext[11:18],data_out_ext[21:28]};
-	            parity_check = ^data_out_ext[0:9] | ^data_out_ext[10:19] | ^data_out_ext[20:29];
-	            
-                //------------------------------------------------------------------------------
-                // temporary data check - scoreboard will do the job later
-                begin
-                    automatic bit [15:0] expected = get_expected_2(data_in_ext_2, op_set, repeat_no);
-	                if(op_set != INV_CMD)
-	                    assert((result == expected) && (STATUS == 0) && (parity_check == 0)) begin
-	                        `ifdef DEBUG
-	                        $display("Test passed for op_set=%s", op_set.name());
-	                        `endif
-	                    end
-	                    else begin
-	                        $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
-	                        $display("Expected: %d  received: %d", expected, result);
-		                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
-	                        test_result = TEST_FAILED;
-	                    end
-	                else
-		                assert((STATUS == S_INVALID_COMMAND) && (result == expected) && (parity_check == 0)) begin
-	                        `ifdef DEBUG
-	                        $display("Test passed for op_set=%s", op_set.name());
-	                        `endif
-	                    end
-	                    else begin
-	                        $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
-	                        $display("Expected: %d  received: %d", expected, result);
-		                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
-	                        test_result = TEST_FAILED;
-	                    end;
-                end
-
-            end : case_default_blk
-        endcase // case (op_set)
-    // print coverage after each loop
-    // $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
-    // if($get_coverage() == 100) break;
-    end : tester_main_blk
+	repeat(2) begin
+	    reset_alu();
+	    repeat (100) begin : tester_main_blk
+	        @(negedge clk);
+		    op_set = get_op();
+	        op_set_ext = {1'b1, op_set, 1'b0};
+		    op_set_ext[0] = ~^op_set_ext;
+		    repeat_no = get_op_no();
+		    fill_data_in_regs(repeat_no);
+		    data_in_ext_2[repeat_no] = op_set_ext;
+	        case (op_set) // handle the start signal
+	            CMD_NOP: begin : case_no_op_blk
+	                @(negedge clk);
+	                enable_n = 1'b0;
+	            end
+	            default: begin : case_default_blk
+					send_to_DUT(repeat_no+1);
+	                wait(dout_valid);
+					receive_from_DUT(30);
+	            	STATUS = data_out_ext[1:8];
+	            	result = {data_out_ext[11:18],data_out_ext[21:28]};
+		            parity_check = ^data_out_ext[0:9] | ^data_out_ext[10:19] | ^data_out_ext[20:29];
+		            
+	                //------------------------------------------------------------------------------
+	                // temporary data check - scoreboard will do the job later
+	                begin
+	                    automatic bit [15:0] expected = get_expected_2(data_in_ext_2, op_set, repeat_no);
+		                if(op_set != INV_CMD)
+		                    assert((result == expected) && (STATUS == 0) && (parity_check == 0)) begin
+		                        `ifdef DEBUG
+		                        $display("Test passed for op_set=%s", op_set.name());
+		                        `endif
+		                    end
+		                    else begin
+			                    `ifdef DEBUG
+		                        $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
+		                        $display("Expected: %d  received: %d", expected, result);
+			                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
+			                    `endif
+		                        test_result = TEST_FAILED;
+		                    end
+		                else
+			                assert((STATUS == S_INVALID_COMMAND) && (result == expected) && (parity_check == 0)) begin
+		                        `ifdef DEBUG
+		                        $display("Test passed for op_set=%s", op_set.name());
+		                        `endif
+		                    end
+			                else begin
+				                `ifdef DEBUG
+		                        $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
+		                        $display("Expected: %d  received: %d", expected, result);
+			                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
+			                    `endif
+		                        test_result = TEST_FAILED;
+		                    end;
+	                end
+	
+	            end : case_default_blk
+	        endcase // case (op_set)
+	    // print coverage after each loop
+	    // $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
+	    // if($get_coverage() == 100) break;
+	    end : tester_main_blk
+	end
     $finish;
 end : tester
 
@@ -316,7 +324,7 @@ function logic [15:0] get_expected_2(
 	bit [7:0] A, B;
 	byte iter;
 	iter = 1;
-	ret = data[0][1:8];
+	ret = {8'h0, data[0][1:8]};
     repeat(repetitions-1)
 	    begin
 	    	B = data[iter][1:8];
