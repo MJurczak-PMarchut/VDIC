@@ -67,12 +67,10 @@ typedef enum {
 bit           [7:0]  data_counter, packet_counter;
 bit           [7:0]  STATUS;
 bit           [9:0]  A_ext;
-bit           [9:0]  B_ext;
 bit                  clk;
 bit                  reset_n;
 bit 				 enable_n;
 bit          [15:0]  result;
-bit          [0:29]  data_in_ext;
 bit          [0:29]  data_out_ext;
 bit          [0:9] 	 data_in_ext_2 [8];
 bit 				 parity_check;
@@ -236,11 +234,11 @@ initial begin : tester
 	                if(op_set != INV_CMD)
 	                    assert((result == expected) && (STATUS == 0) && (parity_check == 0)) begin
 	                        `ifdef DEBUG
-	                        $display("Test passed for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set);
+	                        $display("Test passed for op_set=%s", op_set.name());
 	                        `endif
 	                    end
 	                    else begin
-	                        $display("Test FAILED for op_set=%s", op_set.name());
+	                        $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
 	                        $display("Expected: %d  received: %d", expected, result);
 		                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
 	                        test_result = TEST_FAILED;
@@ -248,11 +246,11 @@ initial begin : tester
 	                else
 		                assert((STATUS == S_INVALID_COMMAND) && (result == expected) && (parity_check == 0)) begin
 	                        `ifdef DEBUG
-	                        $display("Test passed for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set);
+	                        $display("Test passed for op_set=%s", op_set.name());
 	                        `endif
 	                    end
 	                    else begin
-	                        $display("Test FAILED for op_set=%s", op_set.name());
+	                        $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
 	                        $display("Expected: %d  received: %d", expected, result);
 		                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
 	                        test_result = TEST_FAILED;
@@ -323,7 +321,7 @@ function logic [15:0] get_expected_2(
 	    begin
 	    	B = data[iter][1:8];
 		    case(op_set)
-		        CMD_AND : ret    = ret & B;
+		        CMD_AND : ret    = data[iter-1][1:8] & B;
 		        CMD_ADD : ret    = ret + B;
 		        CMD_SUB : ret    = ret - B;
 		        CMD_XOR : ret    = ret ^ B;
