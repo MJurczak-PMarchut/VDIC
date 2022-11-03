@@ -75,6 +75,7 @@ bit          [15:0]  result;
 bit          [0:29]  data_in_ext;
 bit          [0:29]  data_out_ext;
 bit          [0:9] 	 data_in_ext_2 [8];
+bit 				 parity_check;
 byte 				 repeat_no;
 
 operation_t          op_set;
@@ -226,13 +227,14 @@ initial begin : tester
 				receive_from_DUT(30);
             	STATUS = data_out_ext[1:8];
             	result = {data_out_ext[11:18],data_out_ext[21:28]};
+	            parity_check = ^data_out_ext[0:9] | ^data_out_ext[10:19] | ^data_out_ext[20:29];
 	            
                 //------------------------------------------------------------------------------
                 // temporary data check - scoreboard will do the job later
                 begin
                     automatic bit [15:0] expected = get_expected_2(data_in_ext_2, op_set, repeat_no);
 	                if(op_set != INV_CMD)
-	                    assert((result == expected) && (STATUS == 0)) begin
+	                    assert((result == expected) && (STATUS == 0) && (parity_check == 0)) begin
 	                        `ifdef DEBUG
 	                        $display("Test passed for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set);
 	                        `endif
@@ -240,11 +242,11 @@ initial begin : tester
 	                    else begin
 	                        $display("Test FAILED for op_set=%s", op_set.name());
 	                        $display("Expected: %d  received: %d", expected, result);
-		                    $display("STATUS: %d ", STATUS);
+		                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
 	                        test_result = TEST_FAILED;
 	                    end
 	                else
-		                assert(STATUS == S_INVALID_COMMAND) begin
+		                assert((STATUS == S_INVALID_COMMAND) && (result == expected) && (parity_check == 0)) begin
 	                        `ifdef DEBUG
 	                        $display("Test passed for A=%0d B=%0d op_set=%s", A_ext[8:1], B_ext[8:1], op_set);
 	                        `endif
@@ -252,7 +254,7 @@ initial begin : tester
 	                    else begin
 	                        $display("Test FAILED for op_set=%s", op_set.name());
 	                        $display("Expected: %d  received: %d", expected, result);
-		                    $display("STATUS: %d ", STATUS);
+		                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
 	                        test_result = TEST_FAILED;
 	                    end;
                 end
