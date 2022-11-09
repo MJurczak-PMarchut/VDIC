@@ -43,7 +43,8 @@ typedef enum bit[7:0] {
     CMD_XOR = 8'b00000011,
     CMD_ADD = 8'b00010000,
     CMD_SUB = 8'b00100000,
-    INV_CMD = 8'b10110011
+    INV_CMD = 8'b10110011,
+    RST_ST = 8'b11111111
 } operation_t;
 
 typedef enum bit {
@@ -67,13 +68,16 @@ typedef enum {
 bit           [7:0]  data_counter, packet_counter;
 bit           [7:0]  STATUS;
 bit           [9:0]  A_ext;
+bit           [7:0]  A;
+bit           [7:0]  B;
 bit                  clk;
 bit                  reset_n;
 bit 				 enable_n;
 bit          [15:0]  result;
 bit          [0:29]  data_out_ext;
-bit          [0:9] 	 data_in_ext_2 [8];
+bit          [0:9] 	 data_in_ext_2 [10];
 bit 				 parity_check;
+bit					 done;
 byte 				 repeat_no;
 
 operation_t          op_set;
@@ -97,6 +101,103 @@ vdic_dut_2022 u_vdic_dut_2022 (
 	.enable_n  (enable_n),
 	.rst_n     (reset_n)
 );
+//------------------------------------------------------------------------------
+// Coverage
+//------------------------------------------------------------------------------
+
+covergroup op_cov;
+
+    option.name = "cg_op_cov";
+
+    coverpoint op_set {
+        // #A1 test all operations
+        bins A1_single_cycle[] = {CMD_ADD, CMD_AND};
+
+        // #A2 test all operations after reset
+        bins A2_rst_opn[]      = (RST_ST => CMD_ADD, CMD_AND);
+
+        // #A3 test reset after all operations
+        bins A3_opn_rst[]      = (CMD_ADD, CMD_AND => RST_ST);
+
+        // #A6 two operations in row
+        bins A6_twoops[]       = (CMD_ADD, CMD_AND [* 2]);
+
+    // bins manymult = (mul_op [* 3:5]);
+    }
+
+endgroup
+
+// Covergroup checking for min and max arguments of the ALU
+covergroup zeros_or_ones_on_ops;
+
+    option.name = "cg_zeros_or_ones_on_ops";
+
+    all_ops : coverpoint op_set {
+        bins implemented_ops = {CMD_ADD, CMD_AND};
+    }
+
+    a_leg: coverpoint A {
+        bins zeros = {'h00};
+        bins others= {['h01:'hFE]};
+        bins ones  = {'hFF};
+    }
+
+    b_leg: coverpoint B {
+        bins zeros = {'h00};
+        bins others= {['h01:'hFE]};
+        bins ones  = {'hFF};
+    }
+    
+    op_no_leg: coverpoint repeat_no {
+	    bins range = {[2:9]};
+    }
+
+    B_op_00_FF: cross a_leg, b_leg, all_ops {
+
+        // #B1 simulate all zero input for all the operations
+
+        bins B1_add_00          = binsof (all_ops) intersect {CMD_ADD} &&
+        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
+
+        bins B1_and_00          = binsof (all_ops) intersect {CMD_AND} &&
+        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
+
+        // #B2 simulate all one input for all the operations
+
+        bins B2_add_FF          = binsof (all_ops) intersect {CMD_ADD} &&
+        (binsof (a_leg.ones) || binsof (b_leg.ones));
+
+        bins B2_and_FF          = binsof (all_ops) intersect {CMD_AND} &&
+        (binsof (a_leg.ones) || binsof (b_leg.ones));
+	    
+        bins B3_add_op_no          = binsof (all_ops) intersect {CMD_ADD} &&
+        (binsof (a_leg.ones) || binsof (b_leg.ones));
+
+        bins B3_and_op_no          = binsof (all_ops) intersect {CMD_AND} &&
+        (binsof (a_leg.ones) || binsof (b_leg.ones));
+
+        ignore_bins others_only =
+        binsof(a_leg.others) && binsof(b_leg.others);
+    }
+
+endgroup
+
+op_cov                      oc;
+zeros_or_ones_on_ops        c_00_FF;
+
+initial begin : coverage
+    oc      = new();
+    c_00_FF = new();
+    forever begin : sample_cov
+        @(posedge clk);
+	    begin
+            oc.sample();
+            c_00_FF.sample();
+	    end
+    end
+end : coverage
+
+
 
 //------------------------------------------------------------------------------
 // Clock generator
@@ -104,6 +205,7 @@ vdic_dut_2022 u_vdic_dut_2022 (
 
 initial begin : clk_gen_blk
     clk = 0;
+	done = 0;
 	enable_n = 1;
     forever begin : clk_frv_blk
         #10;
@@ -155,8 +257,8 @@ endfunction : get_data
 
 function byte get_op_no();
 		byte op_count;
-		op_count = 1'($random) + 2'b10;
-        return (op_count <= 9)?op_count:9; //At least two operands
+		op_count = 3'($random) + 2'b10;
+        return (op_count <= 9)?op_count:9; //At least two operandst two operands
 endfunction : get_op_no
 
 //------------------------
@@ -196,8 +298,14 @@ endtask
 
 task fill_data_in_regs(input byte repeat_number);
 	begin
-		data_counter = 0;
-	    repeat(repeat_number) begin
+		data_counter = 2;
+		A = get_data();
+		B = get_data();
+	    data_in_ext_2[0] = {1'b0,A,1'b0};
+	    data_in_ext_2[0][9] = ~^data_in_ext_2[0];
+	    data_in_ext_2[1] = {1'b0,B,1'b0};
+	    data_in_ext_2[1][9] = ~^data_in_ext_2[1];
+	    repeat(repeat_number - 2) begin
 		    A_ext = {1'b0,get_data(),1'b0};
 		    A_ext[0] = ~^A_ext;
             data_in_ext_2[data_counter] = A_ext;
@@ -207,64 +315,38 @@ task fill_data_in_regs(input byte repeat_number);
 endtask
 
 initial begin : tester
-    reset_alu();
-    repeat (100) begin : tester_main_blk
-        @(negedge clk);
-	    op_set = get_op();
-        op_set_ext = {1'b1, op_set, 1'b0};
-	    op_set_ext[0] = ~^op_set_ext;
-	    repeat_no = get_op_no();
-	    fill_data_in_regs(repeat_no);
-	    data_in_ext_2[repeat_no] = op_set_ext;
-        case (op_set) // handle the start signal
-            CMD_NOP: begin : case_no_op_blk
-                @(negedge clk);
-                enable_n = 1'b0;
-            end
-            default: begin : case_default_blk
-				send_to_DUT(repeat_no+1);
-                wait(dout_valid);
-				receive_from_DUT(30);
-            	STATUS = data_out_ext[1:8];
-            	result = {data_out_ext[11:18],data_out_ext[21:28]};
-	            parity_check = ^data_out_ext[0:9] | ^data_out_ext[10:19] | ^data_out_ext[20:29];
-	            
-                //------------------------------------------------------------------------------
-                // temporary data check - scoreboard will do the job later
-                begin
-                    automatic bit [15:0] expected = get_expected_2(data_in_ext_2, op_set, repeat_no);
-	                if(op_set != INV_CMD)
-	                    assert((result == expected) && (STATUS == 0) && (parity_check == 0)) begin
-	                        `ifdef DEBUG
-	                        $display("Test passed for op_set=%s", op_set.name());
-	                        `endif
-	                    end
-	                    else begin
-	                        $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
-	                        $display("Expected: %d  received: %d", expected, result);
-		                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
-	                        test_result = TEST_FAILED;
-	                    end
-	                else
-		                assert((STATUS == S_INVALID_COMMAND) && (result == expected) && (parity_check == 0)) begin
-	                        `ifdef DEBUG
-	                        $display("Test passed for op_set=%s", op_set.name());
-	                        `endif
-	                    end
-	                    else begin
-	                        $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
-	                        $display("Expected: %d  received: %d", expected, result);
-		                    $display("STATUS: %d  parity: %d", STATUS, parity_check);
-	                        test_result = TEST_FAILED;
-	                    end;
-                end
-
-            end : case_default_blk
-        endcase // case (op_set)
-    // print coverage after each loop
-    // $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
-    // if($get_coverage() == 100) break;
-    end : tester_main_blk
+	repeat(10) begin
+		done = 1'b0;
+	    reset_alu();
+	    repeat (1000) begin : tester_main_blk
+	        @(negedge clk);
+		    done = 1'b0;
+		    op_set = get_op();
+	        op_set_ext = {1'b1, op_set, 1'b0};
+		    op_set_ext[0] = ~^op_set_ext;
+		    repeat_no = get_op_no();
+		    fill_data_in_regs(repeat_no);
+		    data_in_ext_2[repeat_no] = op_set_ext;
+	        case (op_set) // handle the start signal
+	            CMD_NOP: begin : case_no_op_blk
+	                @(negedge clk);
+	                enable_n = 1'b0;
+	            end
+	            default: begin : case_default_blk
+					send_to_DUT(repeat_no+1);
+	                wait(dout_valid);
+					receive_from_DUT(30);
+		            STATUS = data_out_ext[1:8];
+    				result = {data_out_ext[11:18],data_out_ext[21:28]};
+        			parity_check = ^data_out_ext[0:9] | ^data_out_ext[10:19] | ^data_out_ext[20:29];
+		            done = 1'b1;
+	            end : case_default_blk
+	        endcase // case (op_set)
+	    // print coverage after each loop
+	    // $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
+	    // if($get_coverage() == 100) break;
+	    end : tester_main_blk
+    end
     $finish;
 end : tester
 
@@ -276,6 +358,7 @@ task reset_alu();
     `ifdef DEBUG
     $display("%0t DEBUG: reset_alu", $time);
     `endif
+    op_set = RST_ST;
     reset_n = 1'b0;
     @(negedge clk);
     reset_n = 1'b1;
@@ -310,7 +393,7 @@ function logic [15:0] get_expected(
 endfunction : get_expected
 
 function logic [15:0] get_expected_2(
-		bit [0:9] data [8],
+		bit [0:9] data [10],
         operation_t op_set,
         byte repetitions
     );
@@ -385,6 +468,47 @@ function void print_test_result (test_result_t r);
         $write ("\n");
     end
 endfunction
+
+//------------------------------------------------------------------------------
+// Scoreboard
+//------------------------------------------------------------------------------
+
+always @(negedge clk) begin : scoreboard
+    if(done) begin:verify_result
+        shortint predicted_result;
+
+        automatic bit [15:0] expected = get_expected_2(data_in_ext_2, op_set, repeat_no);
+        if(op_set != INV_CMD)
+            assert((result == expected) && (STATUS == 0) && (parity_check == 0)) begin
+                `ifdef DEBUG
+                $display("Test passed for op_set=%s", op_set.name());
+                `endif
+            end
+            else begin
+                `ifdef DEBUG
+                $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
+                $display("Expected: %d  received: %d", expected, result);
+                $display("STATUS: %d  parity: %d", STATUS, parity_check);
+                `endif
+                test_result <= TEST_FAILED;
+            end
+        else
+            assert((STATUS == S_INVALID_COMMAND) && (result == expected) && (parity_check == 0)) begin
+                `ifdef DEBUG
+                $display("Test passed for op_set=%s", op_set.name());
+                `endif
+            end
+            else begin
+                `ifdef DEBUG
+                $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
+                $display("Expected: %d  received: %d", expected, result);
+                $display("STATUS: %d  parity: %d", STATUS, parity_check);
+                `endif
+                test_result <= TEST_FAILED;
+            end;
+
+    end
+end : scoreboard
 
 
 endmodule : top
