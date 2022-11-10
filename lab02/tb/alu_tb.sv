@@ -111,18 +111,14 @@ covergroup op_cov;
 
     coverpoint op_set {
         // #A1 test all operations
-        bins A1_single_cycle[] = {CMD_ADD, CMD_AND};
+        bins A1_single_cycle[] = {[CMD_NOP:CMD_SUB]};
 
         // #A2 test all operations after reset
-        bins A2_rst_opn[]      = (RST_ST => CMD_ADD, CMD_AND);
+        bins A2_rst_opn[]      = (RST_ST => [CMD_NOP:CMD_SUB]);
 
         // #A3 test reset after all operations
-        bins A3_opn_rst[]      = (CMD_ADD, CMD_AND => RST_ST);
+        bins A3_opn_rst[]      = ([CMD_NOP:CMD_SUB] => RST_ST);
 
-        // #A6 two operations in row
-        bins A6_twoops[]       = (CMD_ADD, CMD_AND [* 2]);
-
-    // bins manymult = (mul_op [* 3:5]);
     }
 
 endgroup
@@ -133,7 +129,7 @@ covergroup zeros_or_ones_on_ops;
     option.name = "cg_zeros_or_ones_on_ops";
 
     all_ops : coverpoint op_set {
-        bins implemented_ops = {CMD_ADD, CMD_AND};
+        ignore_bins not_ops = {CMD_NOP, RST_ST, INV_CMD};
     }
 
     a_leg: coverpoint A {
@@ -161,6 +157,15 @@ covergroup zeros_or_ones_on_ops;
 
         bins B1_and_00          = binsof (all_ops) intersect {CMD_AND} &&
         (binsof (a_leg.zeros) || binsof (b_leg.zeros));
+	    
+	    bins B1_or_00          = binsof (all_ops) intersect {CMD_OR} &&
+        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
+	    
+	    bins B1_xor_00          = binsof (all_ops) intersect {CMD_XOR} &&
+        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
+	    
+	    bins B1_sub_00          = binsof (all_ops) intersect {CMD_SUB} &&
+        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
 
         // #B2 simulate all one input for all the operations
 
@@ -170,11 +175,14 @@ covergroup zeros_or_ones_on_ops;
         bins B2_and_FF          = binsof (all_ops) intersect {CMD_AND} &&
         (binsof (a_leg.ones) || binsof (b_leg.ones));
 	    
-        bins B3_add_op_no          = binsof (all_ops) intersect {CMD_ADD} &&
-        (binsof (a_leg.ones) || binsof (b_leg.ones));
-
-        bins B3_and_op_no          = binsof (all_ops) intersect {CMD_AND} &&
-        (binsof (a_leg.ones) || binsof (b_leg.ones));
+	    bins B2_or_FF          = binsof (all_ops) intersect {CMD_OR} &&
+        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
+	    
+	    bins B2_xor_FF          = binsof (all_ops) intersect {CMD_XOR} &&
+        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
+	    
+	    bins B2_sub_FF          = binsof (all_ops) intersect {CMD_SUB} &&
+        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
 
         ignore_bins others_only =
         binsof(a_leg.others) && binsof(b_leg.others);
@@ -224,19 +232,15 @@ function operation_t get_op();
     bit [2:0] op_choice;
     op_choice = 3'($random);
     case (op_choice)
-//        3'b000 : return CMD_NOP;
-		3'b000 : return CMD_ADD;
+        3'b000 : return CMD_NOP;
         3'b001 : return CMD_ADD;
         3'b010 : return CMD_AND;
-        3'b011 : return CMD_AND;
-        3'b100 : return CMD_ADD;
-        3'b101 : return INV_CMD;
-//        3'b011 : return CMD_XOR;
-//        3'b100 : return CMD_SUB;
-//        3'b101 : return CMD_NOP;
-//        3'b110 : return CMD_OR;
+        3'b011 : return CMD_XOR;
+        3'b100 : return CMD_SUB;
+        3'b101 : return CMD_XOR;
+        3'b110 : return CMD_OR;
         3'b110 : return CMD_AND;
-        3'b111 : return CMD_ADD;
+        3'b111 : return INV_CMD;
     endcase // case (op_choice)
 endfunction : get_op
 
@@ -315,7 +319,7 @@ task fill_data_in_regs(input byte repeat_number);
 endtask
 
 initial begin : tester
-	repeat(10) begin
+	repeat(20) begin
 		done = 1'b0;
 	    reset_alu();
 	    repeat (1000) begin : tester_main_blk
@@ -329,8 +333,8 @@ initial begin : tester
 		    data_in_ext_2[repeat_no] = op_set_ext;
 	        case (op_set) // handle the start signal
 	            CMD_NOP: begin : case_no_op_blk
-	                @(negedge clk);
-	                enable_n = 1'b0;
+		            data_in_ext_2[0] = op_set_ext;
+	                send_to_DUT(1);
 	            end
 	            default: begin : case_default_blk
 					send_to_DUT(repeat_no+1);
@@ -410,9 +414,11 @@ function logic [15:0] get_expected_2(
 		        CMD_ADD : ret    = ret + B;
 		        CMD_SUB : ret    = ret - B;
 		        CMD_XOR : ret    = ret ^ B;
+		        CMD_OR : ret    = ret | B;
+			    CMD_NOP : ret    = 0;
 			    INV_CMD : ret    = 0;
 		        default: begin
-		            $display("%0t INTERNAL ERROR. get_expected: unexpected case argument: %s", $time, op_set);
+		            $display("%0t INTERNAL ERROR. get_expected: unexpected case argument: %s", $time, op_set.name());
 		            test_result = TEST_FAILED;
 		            return -1;
 		        end
@@ -468,7 +474,7 @@ function void print_test_result (test_result_t r);
         $write ("\n");
     end
 endfunction
-
+//`define DEBUG
 //------------------------------------------------------------------------------
 // Scoreboard
 //------------------------------------------------------------------------------
