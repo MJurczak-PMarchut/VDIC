@@ -288,6 +288,8 @@ task reset_alu();
     `endif
     start   = 1'b0;
     reset_n = 1'b0;
+	@(posedge clk)
+	reset_n = 1'b0;
     @(negedge clk);
     reset_n = 1'b1;
 endtask : reset_alu

@@ -145,48 +145,11 @@ covergroup zeros_or_ones_on_ops;
     }
     
     op_no_leg: coverpoint repeat_no {
-	    bins range = {[2:9]};
+	    bins range[] = {[2:9]};
     }
+    
+    B_op_00_FF: cross a_leg, b_leg, all_ops, op_no_leg ;
 
-    B_op_00_FF: cross a_leg, b_leg, all_ops {
-
-        // #B1 simulate all zero input for all the operations
-
-        bins B1_add_00          = binsof (all_ops) intersect {CMD_ADD} &&
-        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
-
-        bins B1_and_00          = binsof (all_ops) intersect {CMD_AND} &&
-        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
-	    
-	    bins B1_or_00          = binsof (all_ops) intersect {CMD_OR} &&
-        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
-	    
-	    bins B1_xor_00          = binsof (all_ops) intersect {CMD_XOR} &&
-        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
-	    
-	    bins B1_sub_00          = binsof (all_ops) intersect {CMD_SUB} &&
-        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
-
-        // #B2 simulate all one input for all the operations
-
-        bins B2_add_FF          = binsof (all_ops) intersect {CMD_ADD} &&
-        (binsof (a_leg.ones) || binsof (b_leg.ones));
-
-        bins B2_and_FF          = binsof (all_ops) intersect {CMD_AND} &&
-        (binsof (a_leg.ones) || binsof (b_leg.ones));
-	    
-	    bins B2_or_FF          = binsof (all_ops) intersect {CMD_OR} &&
-        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
-	    
-	    bins B2_xor_FF          = binsof (all_ops) intersect {CMD_XOR} &&
-        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
-	    
-	    bins B2_sub_FF          = binsof (all_ops) intersect {CMD_SUB} &&
-        (binsof (a_leg.zeros) || binsof (b_leg.zeros));
-
-        ignore_bins others_only =
-        binsof(a_leg.others) && binsof(b_leg.others);
-    }
 
 endgroup
 
@@ -319,7 +282,7 @@ task fill_data_in_regs(input byte repeat_number);
 endtask
 
 initial begin : tester
-	repeat(20) begin
+	repeat(30) begin
 		done = 1'b0;
 	    reset_alu();
 	    repeat (1000) begin : tester_main_blk
@@ -332,10 +295,16 @@ initial begin : tester
 		    fill_data_in_regs(repeat_no);
 		    data_in_ext_2[repeat_no] = op_set_ext;
 	        case (op_set) // handle the start signal
-	            CMD_NOP: begin : case_no_op_blk
-		            data_in_ext_2[0] = op_set_ext;
-	                send_to_DUT(1);
-	            end
+//	            CMD_NOP: begin : case_no_op_blk
+//		            data_in_ext_2[0] = op_set_ext;
+//	                send_to_DUT(1);
+//		            wait(dout_valid);
+//					receive_from_DUT(30);
+//		            STATUS = data_out_ext[1:8];
+//    				result = {data_out_ext[11:18],data_out_ext[21:28]};
+//        			parity_check = ^data_out_ext[0:9] | ^data_out_ext[10:19] | ^data_out_ext[20:29];
+//		            done = 1'b1;
+//	            end
 	            default: begin : case_default_blk
 					send_to_DUT(repeat_no+1);
 	                wait(dout_valid);
@@ -346,9 +315,6 @@ initial begin : tester
 		            done = 1'b1;
 	            end : case_default_blk
 	        endcase // case (op_set)
-	    // print coverage after each loop
-	    // $strobe("%0t coverage: %.4g\%",$time, $get_coverage());
-	    // if($get_coverage() == 100) break;
 	    end : tester_main_blk
     end
     $finish;
@@ -405,12 +371,12 @@ function logic [15:0] get_expected_2(
 	bit [7:0] A, B;
 	byte iter;
 	iter = 1;
-	ret = data[0][1:8];
+	ret = {8'h00, data[0][1:8]};
     repeat(repetitions-1)
 	    begin
 	    	B = data[iter][1:8];
 		    case(op_set)
-		        CMD_AND : ret    = data[iter-1][1:8] & B;
+		        CMD_AND : ret    = ret & B;
 		        CMD_ADD : ret    = ret + B;
 		        CMD_SUB : ret    = ret - B;
 		        CMD_XOR : ret    = ret ^ B;
