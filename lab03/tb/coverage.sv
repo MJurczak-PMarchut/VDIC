@@ -88,7 +88,7 @@ initial begin : coverage
 	    begin
 		    A = bfm.A;
 		    B = bfm.B;
-		    op_set = bfm.op_set;
+		    #1 op_set = bfm.op_set; 
             oc.sample();
             c_00_FF.sample();
 	    end
