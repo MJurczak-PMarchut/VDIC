@@ -1,5 +1,4 @@
 
-
 virtual class shape;
     protected real length;
     protected real width;
@@ -112,7 +111,9 @@ initial begin
     real w;
     real l;
 
-    fd = $fopen("/home/student/mjurczak/VDIC/lab04/tb/lab04part1_shapes.txt", "r");
+    fd = $fopen("../tb/lab04part1_shapes.txt", "r");
+	if(!fd)
+		$fatal(1, "Failed to open file");
     while($fscanf(fd, "%s %g %g", sh, w, l) == 3)
     begin
         shape_h = shape_factory::make_shape(sh, w, l);
@@ -143,7 +144,6 @@ initial begin
     shape_reporter#(rectangle)::report_shapes();
     shape_reporter#(square)::report_shapes();
     shape_reporter#(triangle)::report_shapes();
-
 end
 
 endmodule : top
