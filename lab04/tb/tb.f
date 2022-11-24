@@ -1,3 +1,3 @@
-lab04part1_example_factory.svh
+lab04part1.svh
 +incdir+.
 +nowarn+DSEMEL
