@@ -1,4 +1,4 @@
-module top;
+
 
 virtual class shape;
     protected real length;
@@ -98,7 +98,8 @@ class shape_reporter #(parameter type T = shape);
     endfunction : report_shapes
 endclass : shape_reporter
 
-
+module top;
+	
 initial begin
     shape shape_h;
     rectangle rectangle_h;
