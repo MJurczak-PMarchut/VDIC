@@ -117,6 +117,7 @@ initial begin
         shape_h = shape_factory::make_shape(sh, w, l);
         case(sh) 
             "rectangle": begin
+	            // shape_factory returns type shape so it should always cast
                 cast_ok = $cast(rectangle_h, shape_h);
                 if ( ! cast_ok) 
                     $fatal(1, "Failed to cast shape_h to rectangle_h");
