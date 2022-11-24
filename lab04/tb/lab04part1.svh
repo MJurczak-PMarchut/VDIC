@@ -52,33 +52,6 @@ class triangle extends shape;
     endfunction
 endclass : triangle
 
-
-class shape_factory;
-    static function shape make_shape(string shape_type, real w, real h);
-    rectangle rectangle_h;
-    square square_h;
-    triangle triangle_h;
-    case(shape_type)
-        "rectangle": begin
-            rectangle_h = new(w, h);
-            return rectangle_h;
-        end
-        "square": begin
-            square_h = new(w);
-            return square_h;
-        end
-        "triangle": begin
-            triangle_h = new(w, h);
-            return triangle_h;
-        end
-        default: begin
-            $fatal (1, {"No such shape: ", shape_type});
-        end
-    endcase
-    endfunction : make_shape
-endclass : shape_factory
-
-
 class shape_reporter #(parameter type T = shape);
     protected static T shape_storage[$];
 	
@@ -96,6 +69,36 @@ class shape_reporter #(parameter type T = shape);
         $display("Total area = %g", total_area);
     endfunction : report_shapes
 endclass : shape_reporter
+
+class shape_factory;
+    static function shape make_shape(string shape_type, real w, real h);
+    rectangle rectangle_h;
+    square square_h;
+    triangle triangle_h;
+    case(shape_type)
+        "rectangle": begin
+            rectangle_h = new(w, h);
+	        shape_reporter#(rectangle)::push_shape_to_storage(rectangle_h);
+            return rectangle_h;
+        end
+        "square": begin
+            square_h = new(w);
+	        shape_reporter#(square)::push_shape_to_storage(square_h);
+            return square_h;
+        end
+        "triangle": begin
+            triangle_h = new(w, h);
+	        shape_reporter#(triangle)::push_shape_to_storage(triangle_h);
+            return triangle_h;
+        end
+        default: begin
+            $fatal (1, {"No such shape: ", shape_type});
+        end
+    endcase
+    endfunction : make_shape
+endclass : shape_factory
+
+
 
 module top;
 	
@@ -117,27 +120,6 @@ initial begin
     while($fscanf(fd, "%s %g %g", sh, w, l) == 3)
     begin
         shape_h = shape_factory::make_shape(sh, w, l);
-        case(sh) 
-            "rectangle": begin
-	            // shape_factory returns type shape so it should always cast
-                cast_ok = $cast(rectangle_h, shape_h);
-                if ( ! cast_ok) 
-                    $fatal(1, "Failed to cast shape_h to rectangle_h");
-                shape_reporter#(rectangle)::push_shape_to_storage(rectangle_h);
-            end
-            "square": begin
-                cast_ok = $cast(square_h, shape_h);
-                if ( ! cast_ok) 
-                    $fatal(1, "Failed to cast shape_h to square_h");
-                shape_reporter#(square)::push_shape_to_storage(square_h);
-            end
-            "triangle": begin
-                cast_ok = $cast(triangle_h, shape_h);
-                if ( ! cast_ok) 
-                    $fatal(1, "Failed to cast shape_h to square_h");
-                shape_reporter#(triangle)::push_shape_to_storage(triangle_h);
-            end
-        endcase
     end
     $fclose(fd);
 
