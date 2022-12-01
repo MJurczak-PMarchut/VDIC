@@ -4,3 +4,4 @@ rm -f *.log
 rm -rf INCA_libs*
 rm -f *.history
 rm -f *.rpt
+rm -f imc.key

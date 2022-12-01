@@ -1,22 +1,28 @@
-# tested with XCELIUM 19.09
+#!/bin/bash
+# ##############################################################################
+# Abstract: simulation script to run Cadence xrun in stages, with UVM, including
+#           some error checks, and imc for coverage data aggregation.
+# Version: 2022-11-24
+# ##############################################################################
+# tested with XCELIUM 21.03
 
 # Commmand arguments:
 # -g          - starts xrun simulation with gui, with separate database
 # -q          - xrun quiet operation, less information on screen
 # -d          - define verilog `DEBUG macro
-# -f <file.f> - use file.f instead of the default tb.f 
+# -f <file.f> - use file.f instead of the default ../tb/tb.f 
 # -c          - run imc after simulation to merge the coverage results and
 #               display the statistics
 
 # To set the paths for xrun and imc, execute the following command in the terminal:
-# source ../env.sh
+# source ../../env.sh
 
 # Help library if available with command:
 # cdnshelp &
 
 #------------------------------------------------------------------------------
 # The list of tests; in GUI mode only the first test is started.
-TESTS=(lab01_example);
+TESTS=(random_test zeros_test ones_test);
 #------------------------------------------------------------------------------
 # Default .f file
 FFILE="../tb/tb.f"
@@ -33,7 +39,7 @@ function main(){
 }
 #------------------------------------------------------------------------------
 # local variables#<<<
-XCELIUM_CONFIG="../env.sh";
+XCELIUM_CONFIG="../../env.sh";
 INCA="INCA_libs"
 GUI=""
 QUIET=""
@@ -231,7 +237,7 @@ function check_uvm_fatal() { #<<<
     echo -e "Simulation $FAILED with UVM_FATAL";
     exit -1
   fi
-  if [[ $(egrep  -c "ERROR" $logfile) != "0" ]]; then
+  if [[ $(egrep  -c "\bERROR\b" $logfile) != "0" ]]; then
     echo -e "Simulation $FAILED with ERROR in the log file.";
     exit -1
   fi

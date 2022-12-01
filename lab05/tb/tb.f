@@ -11,3 +11,4 @@ top.sv
 -linedebug
 -fsmdebug
 -uvmlinedebug
+-timescale 1ns/1ps

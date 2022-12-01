@@ -13,8 +13,8 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class zeros_test extends random_test;
-    `uvm_component_utils(zeros_test)
+class ones_test extends random_test;
+    `uvm_component_utils(ones_test)
 
 //------------------------------------------------------------------------------
 // constructor
@@ -32,7 +32,7 @@ class zeros_test extends random_test;
 
         // set the factory to produce a zeros_tester whenever it would produce
         // a random_tester
-        random_tester::type_id::set_type_override(zeros_tester::get_type());
+        random_tester::type_id::set_type_override(ones_tester::get_type());
 
     endfunction : build_phase
 

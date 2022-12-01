@@ -13,29 +13,22 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class zeros_test extends random_test;
-    `uvm_component_utils(zeros_test)
+class ones_tester extends random_tester;
+    `uvm_component_utils(ones_tester)
+    
+//------------------------------------------------------------------------------
+// function: get_op - generate random opcode for the tester
+//------------------------------------------------------------------------------
+    protected function byte get_data();
+        return 8'hFF;
+    endfunction : get_data
 
 //------------------------------------------------------------------------------
 // constructor
 //------------------------------------------------------------------------------
     function new (string name, uvm_component parent);
-        super.new(name,parent);
+        super.new(name, parent);
     endfunction : new
+    
 
-//------------------------------------------------------------------------------
-// build phase
-//------------------------------------------------------------------------------
-    function void build_phase(uvm_phase phase);
-        
-        super.build_phase(phase);
-
-        // set the factory to produce a zeros_tester whenever it would produce
-        // a random_tester
-        random_tester::type_id::set_type_override(zeros_tester::get_type());
-
-    endfunction : build_phase
-
-
-endclass
-
+endclass : ones_tester

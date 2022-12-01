@@ -31,4 +31,4 @@ class zeros_tester extends random_tester;
     endfunction : new
     
 
-endclass : add_tester
+endclass : zeros_tester

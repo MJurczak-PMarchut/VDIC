@@ -43,12 +43,12 @@ virtual class base_tester extends uvm_component;
 			bfm.A = get_data();
 			bfm.B = get_data();
 			bfm.data_in_ext_2[0] = {1'b0,bfm.A,1'b0};
-			bfm.data_in_ext_2[0][9] = ~^bfm.data_in_ext_2[0];
+			bfm.data_in_ext_2[0][9] = ^bfm.data_in_ext_2[0];
 			bfm.data_in_ext_2[1] = {1'b0,bfm.B,1'b0};
-			bfm.data_in_ext_2[1][9] = ~^bfm.data_in_ext_2[1];
+			bfm.data_in_ext_2[1][9] = ^bfm.data_in_ext_2[1];
 			repeat(repeat_number - 2) begin
 				bfm.A_ext = {1'b0,get_data(),1'b0};
-				bfm.A_ext[0] = ~^bfm.A_ext;
+				bfm.A_ext[0] = ^bfm.A_ext;
 				bfm.data_in_ext_2[data_counter] = bfm.A_ext;
 				data_counter = data_counter+1;
 			end
@@ -58,7 +58,7 @@ virtual class base_tester extends uvm_component;
 // build phase
 //------------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
-        if(!uvm_config_db #(virtual tinyalu_bfm)::get(null, "*","bfm", bfm))
+        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
             $fatal(1,"Failed to get BFM");
     endfunction : build_phase
 
@@ -66,12 +66,13 @@ virtual class base_tester extends uvm_component;
 // run phase
 //------------------------------------------------------------------------------
     task run_phase(uvm_phase phase);
+	    phase.raise_objection(this);
 		begin : tester
 			@(negedge bfm.clk)
 			repeat(30) begin
 				wait(bfm.done == 0)
 				bfm.reset_alu();
-				repeat (1000) begin : tester_main_blk
+				repeat (200) begin : tester_main_blk
 					wait(bfm.done == 0)
 					bfm.op_set = get_op();
 					bfm.op_set_ext = {1'b1, bfm.op_set, 1'b0};
@@ -89,7 +90,7 @@ virtual class base_tester extends uvm_component;
 			end
 			bfm.finished = 1;
 			#1;
-			$finish;
+			phase.drop_objection(this);
 		end : tester
     endtask : run_phase
 
