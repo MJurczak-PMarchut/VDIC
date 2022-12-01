@@ -71,7 +71,7 @@ class coverage extends uvm_component;
 	        bins ones  = {'h1FF};
 	    }
 	    op_no_leg: coverpoint repeat_no {
-		    bins range[] = {[2:2]};
+		    bins range[] = {[2:9]};
 	    }
 	    
 	    B_op_00_FF: cross a_leg, b_leg, all_ops, op_no_leg {
