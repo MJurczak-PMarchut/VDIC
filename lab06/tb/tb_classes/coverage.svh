@@ -18,9 +18,8 @@
  and check the data on the correct clock edge (covergroup on posedge
  and scoreboard on negedge). Scoreboard and coverage removed.
  */
-class coverage extends uvm_component;
+class coverage extends uvm_subscriber #(command_s);
     `uvm_component_utils(coverage)
-	protected virtual alu_bfm bfm;
 	
 	protected operation_t op_set;
 	protected byte 				 repeat_no;
@@ -105,37 +104,26 @@ class coverage extends uvm_component;
     endfunction : new
 	
 	
-//------------------------------------------------------------------------------
-// build phase
-//------------------------------------------------------------------------------
-    function void build_phase(uvm_phase phase);
-        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
-            $fatal(1,"Failed to get BFM");
-    endfunction : build_phase
-	
-task run_phase(uvm_phase phase);
+function void write(command_s t);
 
-    forever begin : sample_cov
-        @(posedge bfm.clk);
-	    begin
+    begin : sample_cov
 		    tmp_zeros = 9'h1FF;
 		    tmp_ones = 9'h1FF;;
 		    iter = 0;
-		    repeat(bfm.repeat_no)
+		    repeat(t.data_packet_no)
 			    begin
-				    tmp_zeros[iter] = (bfm.data_in_ext_2[iter][1:8] == 8'h00)?1'b1:1'b0;
-				    tmp_ones[iter] = (bfm.data_in_ext_2[iter][1:8] == 8'hFF)?1'b1:1'b0;
+				    tmp_zeros[iter] = (t.data[iter] == 8'h00)?1'b1:1'b0;
+				    tmp_ones[iter] = (t.data[iter] == 8'hFF)?1'b1:1'b0;
 				    iter++;
 			    end
 			ones = tmp_ones;
 		    zeros = tmp_zeros;
-		    repeat_no = bfm.repeat_no;
-		    #1 op_set = bfm.op_set; 
+		    repeat_no = t.data_packet_no;
+		    op_set = t.op; 
             op_cov.sample();
             zeros_or_ones_on_ops.sample();
-	    end
     end : sample_cov
-endtask
+endfunction 
 
 
 endclass : coverage

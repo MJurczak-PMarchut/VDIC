@@ -13,43 +13,48 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class command_monitor extends uvm_component;
-    `uvm_component_utils(command_monitor)
+class result_monitor extends uvm_component;
+    `uvm_component_utils(result_monitor)
 
 //------------------------------------------------------------------------------
 // local variables
 //------------------------------------------------------------------------------
-    protected virtual alu_bfm bfm;
-    uvm_analysis_port #(command_s) ap;
+    protected virtual tinyalu_bfm bfm;
+    uvm_analysis_port #(shortint) ap;
 
 //------------------------------------------------------------------------------
 // constructor
 //------------------------------------------------------------------------------
     function new (string name, uvm_component parent);
-        super.new(name,parent);
-    endfunction
+        super.new(name, parent);
+    endfunction : new
 
 //------------------------------------------------------------------------------
 // monitoring function called from BFM
 //------------------------------------------------------------------------------
-    function void write_to_monitor(command_s cmd);
+    function void write_to_monitor(shortint r);
         `ifdef DEBUG
-        $display("COMMAND MONITOR: op: %s",cmd.op.name());
+        $display ("RESULT MONITOR: resultA: 0x%0h",r);
         `endif
-        ap.write(cmd);
+        ap.write(r);
     endfunction : write_to_monitor
 
 //------------------------------------------------------------------------------
 // build phase
 //------------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
-
-        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
+        if(!uvm_config_db #(virtual tinyalu_bfm)::get(null, "*","bfm", bfm))
             $fatal(1, "Failed to get BFM");
-
-        bfm.command_monitor_h = this;
-        ap                    = new("ap",this);
+        bfm.result_monitor_h = this;
+        ap                   = new("ap",this);
     endfunction : build_phase
 
-endclass : command_monitor
+
+
+endclass : result_monitor
+
+
+
+
+
 

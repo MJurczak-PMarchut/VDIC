@@ -41,10 +41,15 @@
 
     // ALU data packet
     typedef struct packed {
-		byte 	 data [10];
+		bit 	 [3:0][7:0] data;
         byte unsigned data_packet_no;
         operation_t op;
     } command_s;
+	 
+ 	typedef struct packed {
+		bit 	 [15:0] result;
+        bit      [7:0] 	status;
+    } alu_out;
 
 
 	 function void set_print_color ( print_color_t c );

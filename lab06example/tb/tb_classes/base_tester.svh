@@ -13,43 +13,55 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class command_monitor extends uvm_component;
-    `uvm_component_utils(command_monitor)
+virtual class base_tester extends uvm_component;
+
+// base tester instance is never created, so we do not need macros
+//     `uvm_component_utils(base_tester)
 
 //------------------------------------------------------------------------------
-// local variables
+// port for sending the transactions
 //------------------------------------------------------------------------------
-    protected virtual alu_bfm bfm;
-    uvm_analysis_port #(command_s) ap;
+    uvm_put_port #(command_s) command_port;
+
+//------------------------------------------------------------------------------
+//  function prototypes
+//------------------------------------------------------------------------------
+    pure virtual protected function operation_t get_op();
+    pure virtual protected function byte get_data();
 
 //------------------------------------------------------------------------------
 // constructor
 //------------------------------------------------------------------------------
     function new (string name, uvm_component parent);
-        super.new(name,parent);
-    endfunction
-
-//------------------------------------------------------------------------------
-// monitoring function called from BFM
-//------------------------------------------------------------------------------
-    function void write_to_monitor(command_s cmd);
-        `ifdef DEBUG
-        $display("COMMAND MONITOR: op: %s",cmd.op.name());
-        `endif
-        ap.write(cmd);
-    endfunction : write_to_monitor
+        super.new(name, parent);
+    endfunction : new
 
 //------------------------------------------------------------------------------
 // build phase
 //------------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
-
-        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
-            $fatal(1, "Failed to get BFM");
-
-        bfm.command_monitor_h = this;
-        ap                    = new("ap",this);
+        command_port = new("command_port", this);
     endfunction : build_phase
 
-endclass : command_monitor
+//------------------------------------------------------------------------------
+// run phase
+//------------------------------------------------------------------------------
+    task run_phase(uvm_phase phase);
 
+        command_s command;
+
+        phase.raise_objection(this);
+        command.op = rst_op;
+        command_port.put(command);
+        repeat (10000) begin : random_loop
+            command.op = get_op();
+            command.A  = get_data();
+            command.B  = get_data();
+            command_port.put(command);
+        end : random_loop
+        #500;
+        phase.drop_objection(this);
+    endtask : run_phase
+
+
+endclass : base_tester

@@ -1,8 +1,7 @@
 // used to modify the color of the text printed on the terminal
 
-class scoreboard extends uvm_component;
+class scoreboard extends uvm_subscriber #(alu_out);
     `uvm_component_utils(scoreboard)
-	protected virtual alu_bfm bfm;
 	
 //------------------------------------------------------------------------------
 // constructor
@@ -31,18 +30,18 @@ class scoreboard extends uvm_component;
 	uvm_tlm_analysis_fifo #(command_s) cmd_f;
 
 	protected function logic [15:0] get_expected(
-			bit [0:9] data [10],
+			bit [3:0][7:0] data,
 	        operation_t op_set,
 	        byte repetitions
 	    );
-	    bit [15:0] ret;
+	    shortint ret;
 		bit [7:0] A, B;
 		byte iter;
 		iter = 1;
-		ret = {8'h00, data[0][1:8]};
+		ret = {8'h00, data[0]};
 	    repeat(repetitions-1)
 		    begin
-		    	B = data[iter][1:8];
+		    	B = data[iter];
 			    case(op_set)
 			        CMD_AND : ret    = ret & B;
 			        CMD_ADD : ret    = ret + B;
@@ -90,65 +89,43 @@ class scoreboard extends uvm_component;
 // build phase
 //------------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
-        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
-            $fatal(1,"Failed to get BFM");
+        cmd_f = new ("cmd_f", this);
     endfunction : build_phase
 
-
 //------------------------------------------------------------------------------
-// run phase
-//------------------------------------------------------------------------------
-    task run_phase(uvm_phase phase);
-		forever @(negedge bfm.clk) begin : scoreboard
-	    if(bfm.done && bfm.dout_valid) begin:verify_result
-		    bfm.reset_allowed = 0;
-	        expected = get_expected(bfm.data_in_ext_2, bfm.op_set, bfm.repeat_no);
-		    op_set = bfm.op_set;
-		    repeat_no = bfm.repeat_no;
-	    	bfm.done  = 1'b0;
-			bfm.receive_from_DUT(30);
-		    bfm.reset_allowed = 1;
-	        STATUS = bfm.data_out_ext[1:8];
-			result = {bfm.data_out_ext[11:18],bfm.data_out_ext[21:28]};
-			parity_check = ^bfm.data_out_ext[0:9] | ^bfm.data_out_ext[10:19] | ^bfm.data_out_ext[20:29];
-	        if(op_set != INV_CMD)
-	            assert((result == expected) && (STATUS == 0) && (parity_check == 0)) begin
-	                `ifdef DEBUG
-	                $display("Test passed for op_set=%s", op_set.name());
-	                `endif
-	            end
-	            else begin
-	                `ifdef DEBUG
-	                $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
-	                $display("Expected: %d  received: %d", expected, result);
-	                $display("STATUS: %d  parity: %d", STATUS, parity_check);
-	                `endif
-	                test_result <= TEST_FAILED;
-	            end
-	        else
-	            assert((STATUS == S_INVALID_COMMAND) && (result == expected) && (parity_check == 0)) begin
-	                `ifdef DEBUG
-	                $display("Test passed for op_set=%s", op_set.name());
-	                `endif
-	            end
-	            else begin
-	                `ifdef DEBUG
-	                $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
-	                $display("Expected: %d  received: %d", expected, result);
-	                $display("STATUS: %d  parity: %d", STATUS, parity_check);
-	                `endif
-	                test_result <= TEST_FAILED;
-	            end;
-	    	end
-		end
-	endtask
-	
-	//------------------------------------------------------------------------------
 // report phase
 //------------------------------------------------------------------------------
     function void report_phase(uvm_phase phase);
         super.report_phase(phase);
         print_test_result();
     endfunction : report_phase
+
+
+    function void write(alu_out t);
+        shortint predicted_result;
+        command_s cmd;
+        do
+            if (!cmd_f.try_get(cmd))
+                $fatal(1, "Missing command in self checker");
+        while (cmd.op == RST_ST);
+	    op_set = cmd.op;
+	    repeat_no = cmd.data_packet_no;
+        expected = get_expected(cmd.data, cmd.op, cmd.data_packet_no);
+        STATUS = t.status;
+		result = t.result;
+        SCOREBOARD_CHECK:
+        assert (expected == t.result) begin
+//	        $display("Test passed for op_set=%s", op_set.name());
+           `ifdef DEBUG
+            $display("%0t Test passed for A=%0d B=%0d op_set=%0d", $time, cmd.A, cmd.B, cmd.op);
+            `endif
+        end
+        else begin
+            $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
+            $display("Expected: %d  received: %d", expected, result);
+            $display("STATUS: %d  parity: %d", STATUS, parity_check);
+            test_result = TEST_FAILED;
+        end
+    endfunction : write
 
 endclass : scoreboard

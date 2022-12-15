@@ -21,15 +21,7 @@ virtual class base_tester extends uvm_component;
 //------------------------------------------------------------------------------
 // local variables
 //------------------------------------------------------------------------------
-    protected virtual alu_bfm bfm;
-
-//------------------------------------------------------------------------------
-// constructor
-//------------------------------------------------------------------------------
-    function new (string name, uvm_component parent);
-        super.new(name, parent);
-    endfunction : new
-    
+   	protected command_s command;
 //------------------------------------------------------------------------------
 // function prototypes
 //------------------------------------------------------------------------------
@@ -49,21 +41,26 @@ virtual class base_tester extends uvm_component;
 		end
 	endtask
 //------------------------------------------------------------------------------
+// constructor
+//------------------------------------------------------------------------------
+    function new (string name, uvm_component parent);
+        super.new(name, parent);
+    endfunction : new
+
+//------------------------------------------------------------------------------
 // build phase
 //------------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
-        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
-            $fatal(1,"Failed to get BFM");
+        command_port = new("command_port", this);
     endfunction : build_phase
+
 
 //------------------------------------------------------------------------------
 // run phase
 //------------------------------------------------------------------------------
     task run_phase(uvm_phase phase);
-		command_s command;
 	    phase.raise_objection(this);
 		begin : tester
-			@(negedge bfm.clk)
 			repeat(30) begin
         		command.op = RST_ST;
         		command_port.put(command);
@@ -72,8 +69,7 @@ virtual class base_tester extends uvm_component;
 					command_port.put(command);
 				end : tester_main_blk
 			end
-			bfm.finished = 1;
-			#1;
+			#1000;
 			phase.drop_objection(this);
 		end : tester
     endtask : run_phase

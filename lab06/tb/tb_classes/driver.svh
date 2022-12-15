@@ -19,7 +19,7 @@ class driver extends uvm_component;
 //------------------------------------------------------------------------------
 // local variables
 //------------------------------------------------------------------------------
-    protected virtual tinyalu_bfm bfm;
+    protected virtual alu_bfm bfm;
     uvm_get_port #(command_s) command_port;
     
 //------------------------------------------------------------------------------
@@ -33,7 +33,7 @@ class driver extends uvm_component;
 // build phase
 //------------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
-        if(!uvm_config_db #(virtual tinyalu_bfm)::get(null, "*","bfm", bfm))
+        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
             $fatal(1, "Failed to get BFM");
         command_port = new("command_port",this);
     endfunction : build_phase
@@ -46,15 +46,26 @@ class driver extends uvm_component;
         byte iter;
         shortint result;
         forever begin : command_loop
-            iter = 0;
             command_port.get(command);
-            bfm.data_in_ext_2[command.data_packet_no] = {1'b1, command.op, 1'b0};
-            bfm.data_in_ext_2[command.data_packet_no] = ^bfm.data_in_ext_2[command.data_packet_no];
-            repeat(command_port.data_packet_no) begin:
-                bfm.data_in_ext_2[iter] = {1'b0, command_port.data[iter], 1'b0};
-                bfm.data_in_ext_2[iter][0] = ^bfm.data_in_ext_2[iter];
+	        if(command.op == RST_ST)
+		        wait(bfm.reset_allowed)
+		        	@(posedge bfm.clk)
+		        	@(posedge bfm.clk)
+		        		bfm.reset_alu();
+	        else begin
+		        iter = 0;
+		        bfm.op_set = command.op;
+		        bfm.repeat_no = command.data_packet_no;
+	            repeat(command.data_packet_no) begin
+	                bfm.data_in_ext_2[iter] = {1'b0, command.data[iter], 1'b0};
+	                bfm.data_in_ext_2[iter][9] = ^bfm.data_in_ext_2[iter];
+		            iter++;
+	            end
+	            bfm.data_in_ext_2[iter] = {1'b1, command.op, 1'b0};
+	            bfm.data_in_ext_2[iter][9] = ^bfm.data_in_ext_2[iter];
+	            bfm.send_to_DUT(command.data_packet_no+1);
+	            bfm.done = 1'b1;
             end
-            bfm.send_op(command.data_packet_no);
         end : command_loop
     endtask : run_phase
     

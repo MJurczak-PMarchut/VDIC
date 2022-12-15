@@ -19,8 +19,8 @@ class result_monitor extends uvm_component;
 //------------------------------------------------------------------------------
 // local variables
 //------------------------------------------------------------------------------
-    protected virtual tinyalu_bfm bfm;
-    uvm_analysis_port #(shortint) ap;
+    protected virtual alu_bfm bfm;
+    uvm_analysis_port #(alu_out) ap;
 
 //------------------------------------------------------------------------------
 // constructor
@@ -32,9 +32,9 @@ class result_monitor extends uvm_component;
 //------------------------------------------------------------------------------
 // monitoring function called from BFM
 //------------------------------------------------------------------------------
-    function void write_to_monitor(shortint r);
+    function void write_to_monitor(alu_out r);
         `ifdef DEBUG
-        $display ("RESULT MONITOR: resultA: 0x%0h",r);
+        $display ("RESULT MONITOR: result: 0x%0h",r.result);
         `endif
         ap.write(r);
     endfunction : write_to_monitor
@@ -43,7 +43,7 @@ class result_monitor extends uvm_component;
 // build phase
 //------------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
-        if(!uvm_config_db #(virtual tinyalu_bfm)::get(null, "*","bfm", bfm))
+        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
             $fatal(1, "Failed to get BFM");
         bfm.result_monitor_h = this;
         ap                   = new("ap",this);
