@@ -13,62 +13,49 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class random_tester extends base_tester;
-    `uvm_component_utils (random_tester)
-    
+class result_monitor extends uvm_component;
+    `uvm_component_utils(result_monitor)
+
+//------------------------------------------------------------------------------
+// local variables
+//------------------------------------------------------------------------------
+
+    protected virtual tinyalu_bfm bfm;
+    uvm_analysis_port #(result_transaction) ap;
+
 //------------------------------------------------------------------------------
 // constructor
 //------------------------------------------------------------------------------
+
     function new (string name, uvm_component parent);
         super.new(name, parent);
     endfunction : new
 
 //------------------------------------------------------------------------------
-// function: get_data - generate random data for the tester
+// build phase
 //------------------------------------------------------------------------------
-	protected function byte get_data();
 
-		bit [1:0] zero_ones;
+    function void build_phase(uvm_phase phase);
+        if(!uvm_config_db #(virtual tinyalu_bfm)::get(null, "*","bfm", bfm))
+            `uvm_fatal("RESULT MONITOR", "Failed to get BFM")
 
-		zero_ones = 2'($random);
-
-		if (zero_ones == 2'b00)
-			return 8'h00;
-		else if (zero_ones == 2'b11)
-			return 8'hFF;
-		else
-			return 8'($random);
-	endfunction : get_data
+        bfm.result_monitor_h = this;
+        ap                   = new("ap",this);
+    endfunction : build_phase
 
 //------------------------------------------------------------------------------
-// function: get_op - generate random opcode for the tester
+// access function for BFM
 //------------------------------------------------------------------------------
-	protected function operation_t get_op();
-		bit [2:0] op_choice;
-		op_choice = 3'($random);
-		case (op_choice)
-			3'b000 : return CMD_NOP;
-			3'b001 : return CMD_ADD;
-			3'b010 : return CMD_AND;
-			3'b011 : return CMD_XOR;
-			3'b100 : return CMD_SUB;
-			3'b101 : return CMD_XOR;
-			3'b110 : return CMD_OR;
-			3'b110 : return CMD_AND;
-			3'b111 : return INV_CMD;
-		endcase // case (op_choice)
-	endfunction : get_op
 
-//---------------------------------
+    function void write_to_monitor(shortint r);
+        result_transaction result_t;
+        result_t        = new("result_t");
+        result_t.result = r;
+        ap.write(result_t);
+    endfunction : write_to_monitor
 
 
-protected function byte get_op_no();
-		byte op_count;
-		op_count = 3'($random) + 2'b10;
-        return (op_count <= 9)?op_count:9; //At least two operandst two operands
-endfunction : get_op_no
-
-endclass : random_tester
+endclass : result_monitor
 
 
 

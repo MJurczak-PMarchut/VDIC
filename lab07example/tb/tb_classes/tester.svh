@@ -13,43 +13,61 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class command_monitor extends uvm_component;
-    `uvm_component_utils(command_monitor)
+class tester extends uvm_component;
+    `uvm_component_utils (tester)
 
 //------------------------------------------------------------------------------
 // local variables
 //------------------------------------------------------------------------------
-    protected virtual alu_bfm bfm;
-    uvm_analysis_port #(command_s) ap;
+
+    uvm_put_port #(command_transaction) command_port;
 
 //------------------------------------------------------------------------------
 // constructor
 //------------------------------------------------------------------------------
+
     function new (string name, uvm_component parent);
-        super.new(name,parent);
-    endfunction
+        super.new(name, parent);
+    endfunction : new
 
-//------------------------------------------------------------------------------
-// monitoring function called from BFM
-//------------------------------------------------------------------------------
-    function void write_to_monitor(command_s cmd);
-        `ifdef DEBUG
-        $display("COMMAND MONITOR: op: %s",cmd.op.name());
-        `endif
-        ap.write(cmd);
-    endfunction : write_to_monitor
-
-//------------------------------------------------------------------------------
-// build phase
-//------------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
-
-        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
-            $fatal(1, "Failed to get BFM");
-
-        bfm.command_monitor_h = this;
-        ap                    = new("ap",this);
+        command_port = new("command_port", this);
     endfunction : build_phase
 
-endclass : command_monitor
+//------------------------------------------------------------------------------
+// run phase
+//------------------------------------------------------------------------------
+
+    task run_phase(uvm_phase phase);
+        command_transaction command;
+
+        phase.raise_objection(this);
+
+        command    = new("command");
+        command.op = rst_op;
+        command_port.put(command);
+
+        command    = command_transaction::type_id::create("command");
+        repeat (1000) begin
+            assert(command.randomize());
+            command_port.put(command);
+        end
+
+        command    = new("command");
+        command.op = mul_op;
+        command.A  = 8'hFF;
+        command.B  = 8'hFF;
+        command_port.put(command);
+
+        #500;
+        phase.drop_objection(this);
+    endtask : run_phase
+
+
+endclass : tester
+
+
+
+
+
 

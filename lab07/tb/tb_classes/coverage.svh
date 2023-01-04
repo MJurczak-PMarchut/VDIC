@@ -18,7 +18,7 @@
  and check the data on the correct clock edge (covergroup on posedge
  and scoreboard on negedge). Scoreboard and coverage removed.
  */
-class coverage extends uvm_subscriber #(command_s);
+class coverage extends uvm_subscriber #(command_transaction);
     `uvm_component_utils(coverage)
 	
 	protected operation_t op_set;
@@ -104,7 +104,7 @@ class coverage extends uvm_subscriber #(command_s);
     endfunction : new
 	
 	
-function void write(command_s t);
+function void write(command_transaction t);
 
     begin : sample_cov
 		    tmp_zeros = 9'h1FF;

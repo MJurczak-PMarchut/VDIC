@@ -3,7 +3,8 @@ alu_pkg.sv
 alu_bfm.sv
 top.sv
 +incdir+.
-+incdir+tb_classes
++incdir+./tb_classes
+
 
 +nowarnDSEMEL
 +nowarnBADPRF

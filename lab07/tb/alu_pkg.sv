@@ -71,12 +71,13 @@
 //------------------------------------------------------------------------------
 // testbench classes
 //------------------------------------------------------------------------------
+`include "command_transaction.svh"
+`include "result_transaction.svh"
+`include "zeros_transaction.svh"
+`include "ones_transaction.svh"
 `include "coverage.svh"
 `include "scoreboard.svh"
-`include "base_tester.svh"
-`include "random_tester.svh"
-`include "zeros_tester.svh"
-`include "ones_tester.svh"
+`include "tester.svh"
 `include "driver.svh"
 `include "command_monitor.svh"
 `include "result_monitor.svh"
@@ -86,6 +87,6 @@
 // test classes
 //------------------------------------------------------------------------------
 `include "random_test.svh"
-`include "zeros_test.svh"
 `include "ones_test.svh"
+`include "zeros_test.svh"
  endpackage

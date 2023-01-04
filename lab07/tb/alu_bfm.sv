@@ -52,7 +52,6 @@ assign reset_allowed = (!TX_ongoing && !RX_ongoing);
 
 command_monitor command_monitor_h;
 result_monitor result_monitor_h;
-command_s cmd_t, cmd_d;
 //------------------------------------------------------------------------------
 // Clock generator
 //------------------------------------------------------------------------------
@@ -76,6 +75,9 @@ task reset_alu();
     $display("%0t DEBUG: reset_alu", $time);
     `endif
     wait(reset_allowed);
+	@(posedge clk);
+	@(posedge clk);
+	wait(reset_allowed);
     op_set = RST_ST;
     reset_n = 1'b0;
     @(negedge clk);
@@ -129,22 +131,26 @@ endtask
 always @(negedge enable_n) begin : op_monitor
     static bit in_command = 0;
 	byte iter;
+	command_transaction command;
+	command = new("cmd");
     begin : start_high
 			iter = 0;
 			repeat(repeat_no) begin
-				cmd_t.data[iter] = data_in_ext_2[iter][1:8];
+				command.data[iter] = data_in_ext_2[iter][1:8];
 				iter++;
 			end
-			cmd_t.data_packet_no = repeat_no;
-            cmd_t.op = op_set;
-            command_monitor_h.write_to_monitor(cmd_t);
+			command.data_packet_no = repeat_no;
+            command.op = op_set;
+            command_monitor_h.write_to_monitor(command);
     end : start_high
 end : op_monitor
 
 always @(negedge reset_n) begin : rst_monitor
-    cmd_d.op = RST_ST;
+	command_transaction command;
+	command = new("cmd");
+	command.op = RST_ST;
     if (command_monitor_h != null) //guard against VCS time 0 negedge
-        command_monitor_h.write_to_monitor(cmd_d);
+        command_monitor_h.write_to_monitor(command);
     
 end : rst_monitor
 

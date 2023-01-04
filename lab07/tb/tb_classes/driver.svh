@@ -20,7 +20,7 @@ class driver extends uvm_component;
 // local variables
 //------------------------------------------------------------------------------
     protected virtual alu_bfm bfm;
-    uvm_get_port #(command_s) command_port;
+    uvm_get_port #(command_transaction) command_port;
     
 //------------------------------------------------------------------------------
 // constructor
@@ -42,16 +42,15 @@ class driver extends uvm_component;
 // run phase
 //------------------------------------------------------------------------------
     task run_phase(uvm_phase phase);
-        command_s command;
         byte iter;
         shortint result;
+        command_transaction command;
         forever begin : command_loop
-            command_port.get(command);
+	        command_port.get(command);
 	        if(command.op == RST_ST)
-		        wait(bfm.reset_allowed)
-		        	@(posedge bfm.clk)
-		        	@(posedge bfm.clk)
+		        wait(bfm.reset_allowed) begin
 		        		bfm.reset_alu();
+			        end
 	        else begin
 		        iter = 0;
 		        bfm.op_set = command.op;

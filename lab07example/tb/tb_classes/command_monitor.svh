@@ -13,66 +13,52 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-virtual class base_tester extends uvm_component;
+class command_monitor extends uvm_component;
+    `uvm_component_utils(command_monitor)
 
-// The macro is not there as we never instantiate/use the base_tester
-//    `uvm_component_utils(base_tester)
-    uvm_put_port #(command_s) command_port;
 //------------------------------------------------------------------------------
 // local variables
 //------------------------------------------------------------------------------
-   	protected command_s command;
-//------------------------------------------------------------------------------
-// function prototypes
-//------------------------------------------------------------------------------
-    pure virtual protected function operation_t get_op();
-    pure virtual protected function byte get_data();
-	pure virtual protected function byte get_op_no();
-	protected task fill_data_in_regs();
-		begin
-			automatic bit [7:0]  data_counter;
-			data_counter = 0;
-			command.op = get_op();
-			command.data_packet_no = get_op_no();
-			repeat(command.data_packet_no) begin
-				command.data[data_counter] = get_data();
-				data_counter = data_counter+1;
-			end
-		end
-	endtask
+
+    protected virtual tinyalu_bfm bfm;
+    uvm_analysis_port #(command_transaction) ap;
+
 //------------------------------------------------------------------------------
 // constructor
 //------------------------------------------------------------------------------
+
     function new (string name, uvm_component parent);
-        super.new(name, parent);
+        super.new(name,parent);
     endfunction : new
 
 //------------------------------------------------------------------------------
 // build phase
 //------------------------------------------------------------------------------
+
     function void build_phase(uvm_phase phase);
-        command_port = new("command_port", this);
+        if(!uvm_config_db #(virtual tinyalu_bfm)::get(null, "*","bfm", bfm))
+            `uvm_fatal("COMMAND MONITOR", "Failed to get BFM")
+        bfm.command_monitor_h = this;
+        ap                    = new("ap",this);
     endfunction : build_phase
 
-
 //------------------------------------------------------------------------------
-// run phase
+// access function for BMF
 //------------------------------------------------------------------------------
-    task run_phase(uvm_phase phase);
-	    phase.raise_objection(this);
-		begin : tester
-			repeat(30) begin
-        		command.op = RST_ST;
-        		command_port.put(command);
-				repeat (200) begin : tester_main_blk
-					fill_data_in_regs();
-					command_port.put(command);
-				end : tester_main_blk
-			end
-			#1000;
-			phase.drop_objection(this);
-		end : tester
-    endtask : run_phase
+
+    function void write_to_monitor(byte A, byte B, operation_t op);
+        command_transaction cmd;
+        `uvm_info("COMMAND MONITOR",$sformatf("MONITOR: A: %2h  B: %2h  op: %s",
+                A, B, op.name()), UVM_HIGH);
+        cmd    = new("cmd");
+        cmd.A  = A;
+        cmd.B  = B;
+        cmd.op = op;
+        ap.write(cmd);
+    endfunction : write_to_monitor
+    
+    
+    
+endclass : command_monitor
 
 
-endclass : base_tester

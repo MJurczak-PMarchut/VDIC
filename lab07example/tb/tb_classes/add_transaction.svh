@@ -13,29 +13,24 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class ones_test extends random_test;
-    `uvm_component_utils(ones_test)
+class add_transaction extends command_transaction;
+    `uvm_object_utils(add_transaction)
+
+//------------------------------------------------------------------------------
+// constraints
+//------------------------------------------------------------------------------
+
+    constraint add_only {op == add_op;}
 
 //------------------------------------------------------------------------------
 // constructor
 //------------------------------------------------------------------------------
-    function new (string name, uvm_component parent);
-        super.new(name,parent);
-    endfunction : new
 
-//------------------------------------------------------------------------------
-// build phase
-//------------------------------------------------------------------------------
-    function void build_phase(uvm_phase phase);
-        
-        super.build_phase(phase);
+    function new(string name="");
+        super.new(name);
+    endfunction
+    
+    
+endclass : add_transaction
 
-        // set the factory to produce a zeros_tester whenever it would produce
-        // a random_tester
-        random_tester::type_id::set_type_override(ones_tester::get_type());
-
-    endfunction : build_phase
-
-
-endclass
 

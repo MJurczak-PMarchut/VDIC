@@ -27,10 +27,10 @@ class scoreboard extends uvm_subscriber #(alu_out);
 	protected shortint  result;
 	protected byte 				 repeat_no;
 		
-	uvm_tlm_analysis_fifo #(command_s) cmd_f;
+	uvm_tlm_analysis_fifo #(command_transaction) cmd_f;
 
 	protected function logic [15:0] get_expected(
-			bit [3:0][7:0] data,
+			bit [9:0][7:0] data,
 	        operation_t op_set,
 	        byte repetitions
 	    );
@@ -102,8 +102,9 @@ class scoreboard extends uvm_subscriber #(alu_out);
 
 
     function void write(alu_out t);
+	    string data_str;
         shortint predicted_result;
-        command_s cmd;
+        command_transaction cmd;
         do
             if (!cmd_f.try_get(cmd))
                 $fatal(1, "Missing command in self checker");
@@ -121,7 +122,7 @@ class scoreboard extends uvm_subscriber #(alu_out);
             `endif
         end
         else begin
-            $display("Test FAILED for op_set=%s and %d operands", op_set.name(), repeat_no);
+            $display("Test FAILED %s", cmd.convert2string());
             $display("Expected: %d  received: %d", expected, result);
             $display("STATUS: %d  parity: %d", STATUS, parity_check);
             test_result = TEST_FAILED;
