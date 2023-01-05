@@ -43,18 +43,18 @@ class tester extends uvm_component;
 
         phase.raise_objection(this);
 
-	    command    = new("command");
-		command.op = RST_ST;
-		command_port.put(command);
-	    command    = command_transaction::type_id::create("command");
-	    repeat(3) begin
+//	    command    = new("command");
+//		command.op = RST_ST;
+//		command_port.put(command);
+//	    command    = command_transaction::type_id::create("command");
+	    repeat(40) begin
 		    
 		    command    = new("command");
     		command.op = RST_ST;
     		command_port.put(command);
 		    command    = command_transaction::type_id::create("command");
 		    
-	        repeat (10) begin
+	        repeat (100) begin
 	            assert(command.randomize());
 	            command_port.put(command);
 	        end

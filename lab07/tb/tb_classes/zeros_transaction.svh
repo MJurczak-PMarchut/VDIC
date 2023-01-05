@@ -21,16 +21,16 @@ class zeros_transaction extends command_transaction;
 //------------------------------------------------------------------------------
 
     constraint zeros_only {
-        data[0] == 8'hFF;
-	    data[1] == 8'hFF;
-	    data[2] == 8'hFF;
-	    data[3] == 8'hFF;
-	    data[4] == 8'hFF;
-	    data[5] == 8'hFF;
-	    data[6] == 8'hFF;
-	    data[7] == 8'hFF;
-	    data[8] == 8'hFF;
-	    data[9] == 8'hFF;
+        data[0] == 8'h00;
+	    data[1] == 8'h00;
+	    data[2] == 8'h00;
+	    data[3] == 8'h00;
+	    data[4] == 8'h00;
+	    data[5] == 8'h00;
+	    data[6] == 8'h00;
+	    data[7] == 8'h00;
+	    data[8] == 8'h00;
+	    data[9] == 8'h00;
         data_packet_no dist {[8'h00:8'h01]:=0, [8'h02 : 8'h09]:=1, [8'h0A : 8'hFF]:=0};
 	    op dist {CMD_NOP:=1, CMD_AND:=1, CMD_OR:=1, CMD_XOR:=1, CMD_ADD:=1, CMD_SUB:=1, INV_CMD:=1};}
 
