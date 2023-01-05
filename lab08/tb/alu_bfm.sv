@@ -141,7 +141,8 @@ always @(negedge enable_n) begin : op_monitor
 			end
 			command.data_packet_no = repeat_no;
             command.op = op_set;
-            command_monitor_h.write_to_monitor(command);
+			if(command_monitor_h != null)
+            	command_monitor_h.write_to_monitor(command);
     end : start_high
 end : op_monitor
 
@@ -168,7 +169,8 @@ initial begin : result_monitor_thread
 			receive_from_DUT(30);
 	        result.result = {data_out_ext[11:18],data_out_ext[21:28]};
 	        result.status = data_out_ext[1:8];
-            result_monitor_h.write_to_monitor(result);
+	        if (result_monitor_h != null)
+            	result_monitor_h.write_to_monitor(result);
         end
     end
 end : result_monitor_thread

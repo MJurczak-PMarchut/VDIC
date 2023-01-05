@@ -20,7 +20,7 @@
  */
 
 
-module alu_tester_module(alu_bfm bfm);
+module tester_module(alu_bfm bfm);
 import alu_pkg::*;
 
 
@@ -72,12 +72,12 @@ task fill_data_in_regs(input byte repeat_number);
 		bfm.A = get_data();
 		bfm.B = get_data();
 	    bfm.data_in_ext_2[0] = {1'b0,bfm.A,1'b0};
-	    bfm.data_in_ext_2[0][9] = ~^bfm.data_in_ext_2[0];
+	    bfm.data_in_ext_2[0][9] = ^bfm.data_in_ext_2[0];
 	    bfm.data_in_ext_2[1] = {1'b0,bfm.B,1'b0};
-	    bfm.data_in_ext_2[1][9] = ~^bfm.data_in_ext_2[1];
+	    bfm.data_in_ext_2[1][9] = ^bfm.data_in_ext_2[1];
 	    repeat(repeat_number - 2) begin
 		    bfm.A_ext = {1'b0,get_data(),1'b0};
-		    bfm.A_ext[0] = ~^bfm.A_ext;
+		    bfm.A_ext[0] = ^bfm.A_ext;
             bfm.data_in_ext_2[data_counter] = bfm.A_ext;
             data_counter = data_counter+1;
     	end
@@ -116,4 +116,4 @@ initial	begin : tester
 	end : tester
 
 
-endmodule : alu_tester_module
+endmodule : tester_module

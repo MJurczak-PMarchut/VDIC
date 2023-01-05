@@ -1,6 +1,7 @@
 -F ../../rtl/rtl_01.f
 alu_pkg.sv
 alu_bfm.sv
+tester_module.sv
 top.sv
 +incdir+.
 +incdir+./tb_classes

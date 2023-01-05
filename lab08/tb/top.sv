@@ -43,7 +43,7 @@ alu_bfm module_bfm();
 	.enable_n  (module_bfm.enable_n),
 	.rst_n     (module_bfm.reset_n)
 );
-
+tester_module stim_module(module_bfm);
 initial begin
     uvm_config_db #(virtual alu_bfm)::set(null, "*", "class_bfm", class_bfm);
     uvm_config_db #(virtual alu_bfm)::set(null, "*", "module_bfm", module_bfm);

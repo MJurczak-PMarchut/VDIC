@@ -40,13 +40,11 @@ class tester extends uvm_component;
 
     task run_phase(uvm_phase phase);
         command_transaction command;
+	    zeros_transaction z_command;
+	    ones_transaction o_command;
 
         phase.raise_objection(this);
 
-//	    command    = new("command");
-//		command.op = RST_ST;
-//		command_port.put(command);
-//	    command    = command_transaction::type_id::create("command");
 	    repeat(40) begin
 		    
 		    command    = new("command");
@@ -58,8 +56,33 @@ class tester extends uvm_component;
 	            assert(command.randomize());
 	            command_port.put(command);
 	        end
+	    end
+	    
+	    repeat(40) begin
+		    
+		    z_command    = new("z_command");
+    		z_command.op = RST_ST;
+    		command_port.put(z_command);
+		    z_command    = zeros_transaction::type_id::create("z_command");
+		    
+	        repeat (100) begin
+	            assert(z_command.randomize());
+	            command_port.put(z_command);
+	        end
+	    end
+	    
+	    repeat(40) begin
+		    
+		    o_command    = new("command");
+    		o_command.op = RST_ST;
+    		command_port.put(command);
+		    o_command    = ones_transaction::type_id::create("o_command");
+		    
+	        repeat (100) begin
+	            assert(o_command.randomize());
+	            command_port.put(o_command);
+	        end
         end
-
         #500;
         phase.drop_objection(this);
     endtask : run_phase
