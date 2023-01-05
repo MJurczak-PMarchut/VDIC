@@ -37,10 +37,7 @@ class command_monitor extends uvm_component;
         `ifdef DEBUG
         $display("COMMAND MONITOR: op: %s",cmd.op.name());
         `endif
-        cmd_t    = new("cmd");
-	    cmd_t.data = cmd.data;
-	    cmd_t.op = cmd.op;
-	    cmd_t.data_packet_no = cmd.data_packet_no;
+	    cmd_t = cmd.clone_me();
         ap.write(cmd);
     endfunction : write_to_monitor
 

@@ -20,7 +20,7 @@ class result_monitor extends uvm_component;
 // local variables
 //------------------------------------------------------------------------------
     protected virtual alu_bfm bfm;
-    uvm_analysis_port #(alu_out) ap;
+    uvm_analysis_port #(result_transaction) ap;
 
 //------------------------------------------------------------------------------
 // constructor
@@ -36,7 +36,11 @@ class result_monitor extends uvm_component;
         `ifdef DEBUG
         $display ("RESULT MONITOR: result: 0x%0h",r.result);
         `endif
-        ap.write(r);
+        result_transaction result_t;
+        result_t        = new("result_t");
+        result_t.result = r.result;
+	    result_t.status = r.status;
+        ap.write(result_t);
     endfunction : write_to_monitor
 
 //------------------------------------------------------------------------------

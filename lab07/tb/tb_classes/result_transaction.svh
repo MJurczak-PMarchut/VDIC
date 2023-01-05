@@ -19,7 +19,8 @@ class result_transaction extends uvm_transaction;
 // transaction variables
 //------------------------------------------------------------------------------
 
-    shortint result;
+	bit 	 [15:0] result;
+    bit      [7:0] 	status;
 
 //------------------------------------------------------------------------------
 // constructor
@@ -41,11 +42,12 @@ class result_transaction extends uvm_transaction;
         assert($cast(copied_transaction_h,rhs)) else
             `uvm_fatal("RESULT TRANSACTION","Failed cast in do_copy");
         result = copied_transaction_h.result;
+        status = copied_transaction_h.status;
     endfunction : do_copy
 
     function string convert2string();
         string s;
-        s = $sformatf("result: %4h",result);
+        s = $sformatf("result: %4h, status %8b",result, status);
         return s;
     endfunction : convert2string
 
@@ -58,7 +60,7 @@ class result_transaction extends uvm_transaction;
         same = super.do_compare(rhs, comparer);
 
         $cast(RHS, rhs);
-        same = (result == RHS.result) && same;
+        same = (result == RHS.result) && same && (status == RHS.status);
         return same;
     endfunction : do_compare
 
