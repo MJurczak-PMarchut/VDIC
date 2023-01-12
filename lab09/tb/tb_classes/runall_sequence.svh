@@ -51,9 +51,9 @@ class runall_sequence extends uvm_sequence #(uvm_sequence_item);
             `uvm_fatal("RUNALL_SEQUENCE", "Failed to cast from uvm_component_h.")
 
         reset           = reset_sequence::type_id::create("reset");
-        max         	= ones_sequence::type_id::create("ones");
+        ones         	= ones_sequence::type_id::create("ones");
         random          = random_sequence::type_id::create("random");
-        zeros             = add_sequence::type_id::create("zeros");
+        zeros             = zeros_sequence::type_id::create("zeros");
     endfunction : new
 
 //------------------------------------------------------------------------------
@@ -61,11 +61,11 @@ class runall_sequence extends uvm_sequence #(uvm_sequence_item);
 //------------------------------------------------------------------------------
 
     task body();
+		`uvm_info("SEQ_RUNALL","",UVM_MEDIUM)
 		repeat(30)
 			begin
-				`uvm_info("SEQ_RUNALL","",UVM_MEDIUM)
 				reset.start(sequencer_h);
-				max.start(sequencer_h);
+				ones.start(sequencer_h);
 				random.start(sequencer_h);
 				zeros.start(sequencer_h);
 			end

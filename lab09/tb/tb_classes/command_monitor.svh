@@ -20,7 +20,7 @@ class command_monitor extends uvm_component;
 // local variables
 //------------------------------------------------------------------------------
     protected virtual alu_bfm bfm;
-    uvm_analysis_port #(command_transaction) ap;
+    uvm_analysis_port #(sequence_item) ap;
 
 //------------------------------------------------------------------------------
 // constructor
@@ -32,26 +32,38 @@ class command_monitor extends uvm_component;
 //------------------------------------------------------------------------------
 // monitoring function called from BFM
 //------------------------------------------------------------------------------
-    function void write_to_monitor(command_transaction cmd);
-	    command_transaction cmd_t;
+    function void write_to_monitor(sequence_item cmd);
+	    sequence_item cmd_t;
         `ifdef DEBUG
         $display("COMMAND MONITOR: op: %s",cmd.op.name());
         `endif
-	    cmd_t = cmd.clone_me();
+        cmd_t   = new("cmd");
+        cmd_t.data = cmd.data;
+	    cmd_t.data_packet_no = cmd.data_packet_no;
+	    cmd_t.op = cmd.op;
         ap.write(cmd);
     endfunction : write_to_monitor
 
 //------------------------------------------------------------------------------
-// build phase
+// build_phase
 //------------------------------------------------------------------------------
+
     function void build_phase(uvm_phase phase);
 
         if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
-            $fatal(1, "Failed to get BFM");
+            `uvm_fatal("COMMAND MONITOR", "Failed to get BFM")
 
-        bfm.command_monitor_h = this;
-        ap                    = new("ap",this);
+        ap = new("ap",this);
     endfunction : build_phase
+
+//------------------------------------------------------------------------------
+// connect phase
+//------------------------------------------------------------------------------
+
+    function void connect_phase(uvm_phase phase);
+        bfm.command_monitor_h = this;
+    endfunction : connect_phase
+
 
 endclass : command_monitor
 

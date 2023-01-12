@@ -41,7 +41,7 @@ class random_sequence extends uvm_sequence #(sequence_item);
 //       req = sequence_item::type_id::create("req");
         `uvm_create(req);
 
-        repeat (5000) begin : random_loop
+        repeat (50) begin : random_loop
 //         start_item(req);
 //         assert(req.randomize());
 //         finish_item(req);

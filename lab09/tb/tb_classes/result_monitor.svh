@@ -46,15 +46,21 @@ class result_monitor extends uvm_component;
 //------------------------------------------------------------------------------
 // build phase
 //------------------------------------------------------------------------------
-    function void build_phase(uvm_phase phase);
-        if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
-            $fatal(1, "Failed to get BFM");
-        bfm.result_monitor_h = this;
-        ap                   = new("ap",this);
-    endfunction : build_phase
 
+   function void build_phase(uvm_phase phase);
+      if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
+        `uvm_fatal("DRIVER", "Failed to get BFM");
+      ap  = new("ap",this);
+   endfunction : build_phase
+   
+//------------------------------------------------------------------------------
+// connect phase
+//------------------------------------------------------------------------------
 
-
+   function void connect_phase(uvm_phase phase);
+      bfm.result_monitor_h = this;
+   endfunction : connect_phase
+   
 endclass : result_monitor
 
 

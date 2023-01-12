@@ -131,7 +131,7 @@ endtask
 always @(negedge enable_n) begin : op_monitor
     static bit in_command = 0;
 	byte iter;
-	command_transaction command;
+	sequence_item command;
 	command = new("cmd");
     begin : start_high
 			iter = 0;
@@ -146,7 +146,7 @@ always @(negedge enable_n) begin : op_monitor
 end : op_monitor
 
 always @(negedge reset_n) begin : rst_monitor
-	command_transaction command;
+	sequence_item command;
 	command = new("cmd");
 	command.op = RST_ST;
     if (command_monitor_h != null) //guard against VCS time 0 negedge

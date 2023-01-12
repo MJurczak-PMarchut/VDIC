@@ -44,6 +44,7 @@ class sequence_item extends uvm_sequence_item;
 		`uvm_field_int(data[7], UVM_ALL_ON | UVM_DEC)
 		`uvm_field_int(data[8], UVM_ALL_ON | UVM_DEC)
 		`uvm_field_int(data[9], UVM_ALL_ON | UVM_DEC)
+		`uvm_field_int(data_packet_no, UVM_ALL_ON | UVM_DEC)
         `uvm_field_enum(operation_t, op, UVM_ALL_ON)
     `uvm_object_utils_end
 
@@ -62,9 +63,9 @@ class sequence_item extends uvm_sequence_item;
 	    data[7] dist {8'h00:=2, [8'h01 : 8'hFE]:=1, 8'hFF:=2};
 	    data[8] dist {8'h00:=2, [8'h01 : 8'hFE]:=1, 8'hFF:=2};
 	    data[9] dist {8'h00:=2, [8'h01 : 8'hFE]:=1, 8'hFF:=2};
-        data_packet_no dist {[8'h00:8'h01]:=0, [8'h02 : 8'h09]:=1, [8'h0A : 8'hFF]:=0};
-	    op dist {CMD_NOP:=1, CMD_AND:=1, CMD_OR:=1, CMD_XOR:=1, CMD_ADD:=1, CMD_SUB:=1, INV_CMD:=1};
-    }
+	    }
+        constraint packet_no {data_packet_no dist {[8'h00:8'h01]:=0, [8'h02 : 8'h09]:=1, [8'h0A : 8'hFF]:=0};}
+        constraint op_con {op dist {CMD_NOP:=5, CMD_AND:=5, CMD_OR:=5, CMD_XOR:=5, CMD_ADD:=5, CMD_SUB:=5, INV_CMD:=5, RST_ST:=1};}
 
 //------------------------------------------------------------------------------
 // constructor

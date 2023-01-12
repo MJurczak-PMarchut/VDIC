@@ -22,7 +22,9 @@
 
 #------------------------------------------------------------------------------
 # The list of tests; in GUI mode only the first test is started.
-TESTS=(random_test zeros_test ones_test);
+# TESTS=(random_test add_test);
+# TESTS=(dual_test);
+TESTS=(full_test);
 #------------------------------------------------------------------------------
 # Default .f file
 FFILE="../tb/tb.f"

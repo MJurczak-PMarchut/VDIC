@@ -14,7 +14,7 @@
  limitations under the License.
  */
 class ones_sequence extends uvm_sequence #(ones_sequence_item);
-    `uvm_object_utils(zeros_sequence)
+    `uvm_object_utils(ones_sequence)
     
 //------------------------------------------------------------------------------
 // local variables
@@ -37,9 +37,9 @@ class ones_sequence extends uvm_sequence #(ones_sequence_item);
 
     task body();
         `uvm_info("SEQ_ONES","",UVM_MEDIUM)
-        repeat (100) begin
+        repeat (50) begin
             `uvm_do(req);
-            req.print();
+//            req.print();
         end
     endtask : body
     

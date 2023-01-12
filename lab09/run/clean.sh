@@ -5,3 +5,4 @@ rm -rf INCA_libs*
 rm -f *.history
 rm -f *.rpt
 rm -f imc.key
+rm -rf waves.shm

@@ -41,6 +41,6 @@ class zeros_sequence_item extends sequence_item;
         super.new(name);
     endfunction : new
 
-endclass : ones_sequence_item
+endclass : zeros_sequence_item
 
 

@@ -34,7 +34,6 @@ class driver extends uvm_driver #(sequence_item);
     function void build_phase(uvm_phase phase);
         if(!uvm_config_db #(virtual alu_bfm)::get(null, "*","bfm", bfm))
             $fatal(1, "Failed to get BFM");
-        command_port = new("command_port",this);
     endfunction : build_phase
     
 //------------------------------------------------------------------------------
@@ -44,6 +43,7 @@ class driver extends uvm_driver #(sequence_item);
 		sequence_item command;
         byte iter;
         shortint result;
+	    void'(begin_tr(command));
         forever begin : command_loop
 	        seq_item_port.get_next_item(command);
 	        if(command.op == RST_ST)
@@ -63,8 +63,10 @@ class driver extends uvm_driver #(sequence_item);
 	            bfm.data_in_ext_2[iter][9] = ^bfm.data_in_ext_2[iter];
 	            bfm.send_to_DUT(command.data_packet_no+1);
 	            bfm.done = 1'b1;
-            end
+	        end
+	        seq_item_port.item_done();
         end : command_loop
+     end_tr(command);
     endtask : run_phase
     
 

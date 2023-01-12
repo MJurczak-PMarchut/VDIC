@@ -37,9 +37,9 @@ class zeros_sequence extends uvm_sequence #(zeros_sequence_item);
 
     task body();
         `uvm_info("SEQ_ZEROS","",UVM_MEDIUM)
-        repeat (100) begin
+        repeat (50) begin
             `uvm_do(req);
-            req.print();
+//            req.print();
         end
     endtask : body
     

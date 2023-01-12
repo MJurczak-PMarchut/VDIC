@@ -67,26 +67,60 @@
 	        end
 	    endcase
 	    $write(ctl);
-	endfunction
+	 endfunction
+
+//------------------------------------------------------------------------------
+// sequence items
+//------------------------------------------------------------------------------
+
+`include "sequence_item.svh"
+`include "zeros_sequence_item.svh"
+`include "ones_sequence_item.svh"
+
+// to be converted into sequence items
+`include "result_transaction.svh"
+
+//------------------------------------------------------------------------------
+// sequencer
+//------------------------------------------------------------------------------
+
+//`include "sequencer.svh"
+
+// we can use typedef instead of the sequencer class
+    typedef uvm_sequencer #(sequence_item) sequencer;
+
+
+//------------------------------------------------------------------------------
+// sequences
+//------------------------------------------------------------------------------
+
+`include "random_sequence.svh"
+`include "ones_sequence.svh"
+`include "reset_sequence.svh"
+`include "zeros_sequence.svh"
+	 
+	 
+//------------------------------------------------------------------------------
+// virtual sequences
+//------------------------------------------------------------------------------
+
+`include "runall_sequence.svh"
+	 
 //------------------------------------------------------------------------------
 // testbench classes
 //------------------------------------------------------------------------------
-`include "command_transaction.svh"
-`include "result_transaction.svh"
-`include "zeros_transaction.svh"
-`include "ones_transaction.svh"
 `include "coverage.svh"
 `include "scoreboard.svh"
-`include "tester.svh"
 `include "driver.svh"
 `include "command_monitor.svh"
 `include "result_monitor.svh"
 `include "env.svh"
 
 //------------------------------------------------------------------------------
-// test classes
+// tests
 //------------------------------------------------------------------------------
-`include "random_test.svh"
-`include "ones_test.svh"
-`include "zeros_test.svh"
+
+`include "alu_base_test.svh"
+`include "full_test.svh"
+
  endpackage

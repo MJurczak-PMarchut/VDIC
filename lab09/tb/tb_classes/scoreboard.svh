@@ -27,10 +27,10 @@ class scoreboard extends uvm_subscriber #(result_transaction);
 	protected shortint  result;
 	protected byte 				 repeat_no;
 		
-	uvm_tlm_analysis_fifo #(command_transaction) cmd_f;
+	uvm_tlm_analysis_fifo #(sequence_item) cmd_f;
 
 	local function result_transaction get_expected(
-			command_transaction cmd
+			sequence_item cmd
 		);
 		result_transaction predicted;
 	    shortint ret;
@@ -102,7 +102,7 @@ class scoreboard extends uvm_subscriber #(result_transaction);
 	    string data_str;
         shortint predicted_result;
 	    result_transaction predicted;
-        command_transaction cmd;
+        sequence_item cmd;
         do
             if (!cmd_f.try_get(cmd))
                 $fatal(1, "Missing command in self checker");
