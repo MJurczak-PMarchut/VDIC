@@ -13,14 +13,16 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class random_test extends uvm_test;
-    `uvm_component_utils(random_test)
+virtual class alu_base_test extends uvm_test;
+    // The class will never be instantiated, does not need
+    // `uvm_component_utils() macro
 
 //------------------------------------------------------------------------------
-// env
+// local variables
 //------------------------------------------------------------------------------
 
-    env env_h;
+    local env env_h;
+    protected sequencer sequencer_h;
 
 //------------------------------------------------------------------------------
 // constructor
@@ -29,34 +31,30 @@ class random_test extends uvm_test;
     function new (string name, uvm_component parent);
         super.new(name,parent);
     endfunction : new
-
+    
 //------------------------------------------------------------------------------
 // build phase
 //------------------------------------------------------------------------------
 
     function void build_phase(uvm_phase phase);
-        env_h = env::type_id::create("env",this);
+        env_h = env::type_id::create("env_h",this);
     endfunction : build_phase
-
+    
 //------------------------------------------------------------------------------
 // end-of-elaboration phase
 //------------------------------------------------------------------------------
 
     function void end_of_elaboration_phase(uvm_phase phase);
-        command_transaction tmp;               // transaction object to check the type generated
-
-        // other printers available:
-        // - uvm_default_line_printer
-        // - uvm_default_tree_printer
-        set_print_color(COLOR_BLUE_ON_WHITE);
-        this.print(uvm_default_table_printer); // print test env topology
-        set_print_color(COLOR_DEFAULT);
-
-        // printing the type of the transaction generated
-        tmp = command_transaction::type_id::create("command_transaction", this);
-        set_print_color(COLOR_BOLD_BLACK_ON_YELLOW);
-        `uvm_info("COMMAND TRANSACTION", tmp.get_type_name(), UVM_NONE)
-        set_print_color(COLOR_DEFAULT);
+        sequencer_h = env_h.sequencer_h;
     endfunction : end_of_elaboration_phase
+    
+//------------------------------------------------------------------------------
+// start-of-simulation phase
+//------------------------------------------------------------------------------
+
+    function void start_of_simulation();
+        super.start_of_simulation();
+        uvm_top.print_topology();
+    endfunction : start_of_simulation
 
 endclass

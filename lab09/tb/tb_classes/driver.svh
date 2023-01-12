@@ -13,14 +13,13 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class driver extends uvm_component;
+class driver extends uvm_driver #(sequence_item);
     `uvm_component_utils(driver)
     
 //------------------------------------------------------------------------------
 // local variables
 //------------------------------------------------------------------------------
     protected virtual alu_bfm bfm;
-    uvm_get_port #(command_transaction) command_port;
     
 //------------------------------------------------------------------------------
 // constructor
@@ -42,11 +41,11 @@ class driver extends uvm_component;
 // run phase
 //------------------------------------------------------------------------------
     task run_phase(uvm_phase phase);
+		sequence_item command;
         byte iter;
         shortint result;
-        command_transaction command;
         forever begin : command_loop
-	        command_port.get(command);
+	        seq_item_port.get_next_item(command);
 	        if(command.op == RST_ST)
 		        wait(bfm.reset_allowed) begin
 		        		bfm.reset_alu();

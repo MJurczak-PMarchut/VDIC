@@ -13,35 +13,46 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class zeros_transaction extends command_transaction;
-    `uvm_object_utils(zeros_transaction)
-
+class ones_sequence extends uvm_sequence #(ones_sequence_item);
+    `uvm_object_utils(zeros_sequence)
+    
 //------------------------------------------------------------------------------
-// constraints
+// local variables
 //------------------------------------------------------------------------------
 
-    constraint zeros_only {
-        data[0] == 8'h00;
-	    data[1] == 8'h00;
-	    data[2] == 8'h00;
-	    data[3] == 8'h00;
-	    data[4] == 8'h00;
-	    data[5] == 8'h00;
-	    data[6] == 8'h00;
-	    data[7] == 8'h00;
-	    data[8] == 8'h00;
-	    data[9] == 8'h00;
-	}
+// not necessary, req is inherited
+//    ones_sequence_item req;
 
 //------------------------------------------------------------------------------
 // constructor
 //------------------------------------------------------------------------------
 
-    function new(string name="");
+    function new(string name = "ones_sequence");
         super.new(name);
-    endfunction
+    endfunction : new
+
+//------------------------------------------------------------------------------
+// the sequence body
+//------------------------------------------------------------------------------
+
+    task body();
+        `uvm_info("SEQ_ONES","",UVM_MEDIUM)
+        repeat (100) begin
+            `uvm_do(req);
+            req.print();
+        end
+    endtask : body
     
     
-endclass : zeros_transaction
+endclass : ones_sequence
+
+
+
+
+
+
+
+
+
 
 

@@ -13,25 +13,38 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-class ones_test extends random_test;
-    `uvm_component_utils(ones_test)
+class maxmult_sequence extends uvm_sequence #(sequence_item);
+    `uvm_object_utils(maxmult_sequence)
+
+//------------------------------------------------------------------------------
+// local variables
+//------------------------------------------------------------------------------
+
+// not necessary, req is inherited
+//    sequence_item req;
 
 //------------------------------------------------------------------------------
 // constructor
 //------------------------------------------------------------------------------
 
-    function new (string name, uvm_component parent);
-        super.new(name,parent);
+    function new(string name = "maxmult_sequence");
+        super.new(name);
     endfunction : new
-
+    
 //------------------------------------------------------------------------------
-// build phase
+// the sequence body
 //------------------------------------------------------------------------------
 
-    function void build_phase(uvm_phase phase);
-        super.build_phase(phase);
-        command_transaction::type_id::set_type_override(ones_transaction::get_type());
-    endfunction : build_phase
+    task body();
+        `uvm_info("SEQ_MAXMULT", "", UVM_MEDIUM)
+//      req = sequence_item::type_id::create("req");
+//      start_item(req);
+//      req.op = mul_op;
+//      req.A = 8'hFF;
+//      req.B = 8'hFF;
+//      finish_item(req);
+        `uvm_do_with(req, {op == mul_op; A == 8'hFF; B == 8'hFF;})
+    endtask : body
+    
 
-
-endclass
+endclass : maxmult_sequence
